@@ -55,7 +55,7 @@ Snusbase file roles:
 
 `nix build` (and `packages.osintz-snusbase-mcp`) is a uv2nix virtualenv of that distribution with its runtime dependencies. `bin/snusbase-mcp` is on `PATH` inside the result.
 
-`nix flake check` builds a second virtualenv that also includes the lockfile `dev` group, then runs Ruff, mypy, and pytest from that environment. Pytest imports the installed distribution, not `PYTHONPATH=src`. mypy reads `src/` and `tests/` through the member's `pyproject.toml`. Ruff, mypy, and pytest are not taken from nixpkgs' Python package set. A build override belongs in `flake.nix` only when a locked dependency fails to build.
+`nix flake check` builds a second virtualenv that also includes the lockfile `dev` group, then runs Ruff, ty, and pytest from that environment. Pytest imports the installed distribution, not `PYTHONPATH=src`. ty checks the member, including `src/` and `tests/`. Ruff, ty, and pytest are not taken from nixpkgs' Python package set. A build override belongs in `flake.nix` only when a locked dependency fails to build.
 
 ## Runtime
 

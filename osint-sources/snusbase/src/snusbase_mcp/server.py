@@ -5,7 +5,7 @@ successor to FastMCP). One :class:`~snusbase_client.SnusbaseClient` is open
 for the life of the process. The activation code comes from ``SNUSBASE_API_KEY``.
 """
 
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
@@ -27,7 +27,7 @@ def build_server() -> MCPServer[_State]:
     state = _State()
 
     @asynccontextmanager
-    async def lifespan(_server: MCPServer[_State]) -> AsyncIterator[_State]:
+    async def lifespan(_server: MCPServer[_State]) -> AsyncGenerator[_State, None]:
         async with SnusbaseClient() as client:
             state.client = client
             try:

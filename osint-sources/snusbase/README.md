@@ -20,7 +20,7 @@ Keep the activation code in `SNUSBASE_API_KEY` or another secret store. The clie
 
 ## Install
 
-Python 3.12 (`>=3.12,<3.13`). From the repo root, [uv](https://docs.astral.sh/uv/) installs this member. Runtime dependencies are httpx, pydantic v2, and the official `mcp` SDK. pytest, respx, ruff, and mypy are in the `dev` dependency group.
+Python 3.12 (`>=3.12,<3.13`). From the repo root, [uv](https://docs.astral.sh/uv/) installs this member. Runtime dependencies are httpx, pydantic v2, and the official `mcp` SDK. pytest, respx, ruff, and ty are in the `dev` dependency group.
 
 ```bash
 uv sync --package osintz-snusbase-mcp --group dev
@@ -129,10 +129,10 @@ Offline checks, from the repo root:
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase pytest
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ruff check
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ruff format --check
-uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase mypy --no-incremental
+uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ty check
 ```
 
-CI runs `nix flake check -L`, which is the same Ruff, mypy, and pytest commands against the lockfile.
+CI runs `nix flake check -L`, which is the same Ruff, ty, and pytest commands against the lockfile.
 
 ## Client usage
 

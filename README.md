@@ -2,7 +2,7 @@
 
 Independently installable OSINT MCP servers. Each source is a uv workspace member under `osint-sources/`, built as its own distribution and as a Nix package. The host launches the server over stdio and supplies credentials in the environment. There is no HTTP transport and no NixOS module.
 
-Python is 3.12 only (`>=3.12,<3.13`). Dependencies are locked in the root `uv.lock`. `nix flake check` runs Ruff, mypy, and pytest for the Snusbase package from that lockfile through uv2nix.
+Python is 3.12 only (`>=3.12,<3.13`). Dependencies are locked in the root `uv.lock`. `nix flake check` runs Ruff, ty, and pytest for the Snusbase package from that lockfile through uv2nix.
 
 Agents working in this repo should start at [AGENTS.md](AGENTS.md).
 
