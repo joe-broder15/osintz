@@ -107,4 +107,4 @@ Public docs as of the mirror README blob `535876c681d42db603e3f2fe72e6f13cb4e945
 
 ## Not in this contract
 
-DeHashed, Shodan, other WHOIS providers, and certificate transparency are examples in the vision, not members of this repo. Shared runtime stays unextracted until a second real source shows what is repeated.
+DeHashed is the second member. Its contract is [dehashed-contract.md](dehashed-contract.md). Shodan, other WHOIS providers, and certificate transparency are examples in the vision, not members of this repo. Shared runtime stays unextracted. The two clients both redact a secret and refuse redirects. Auth, errors, pacing, and pagination are different, so those pieces stay in each source. Source packages do not depend on each other.

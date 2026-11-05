@@ -1,6 +1,6 @@
 # Architecture
 
-osintz-mcps is a uv workspace of OSINT MCP servers. Each source is one workspace member and one installable distribution. Members do not depend on each other. Snusbase is the only member.
+osintz-mcps is a uv workspace of OSINT MCP servers. Each source is one workspace member and one installable distribution. Members do not depend on each other. Snusbase and DeHashed are the members. Snusbase is stdio only. DeHashed also serves streamable HTTP.
 
 ```text
 MCP interface → tool logic → source primitives
@@ -22,12 +22,19 @@ The MCP tools are the public interface. The client modules are an implementation
 ├── uv.lock                 one lockfile for the workspace
 ├── flake.nix               uv2nix packages and checks
 ├── docs/
-└── osint-sources/snusbase/
-    ├── pyproject.toml      distribution osintz-snusbase-mcp
-    ├── README.md
-    ├── src/snusbase_client/    primitives, models, exceptions
-    ├── src/snusbase_mcp/       tool logic and the stdio server
-    └── tests/
+└── osint-sources/
+    ├── snusbase/
+    │   ├── pyproject.toml      distribution osintz-snusbase-mcp
+    │   ├── README.md
+    │   ├── src/snusbase_client/    primitives, models, exceptions
+    │   ├── src/snusbase_mcp/       tool logic and the stdio server
+    │   └── tests/
+    └── dehashed/
+        ├── pyproject.toml      distribution osintz-dehashed-mcp
+        ├── README.md
+        ├── src/dehashed_client/
+        ├── src/dehashed_mcp/       tool logic, stdio, and streamable HTTP
+        └── tests/
 ```
 
 Snusbase file roles:
@@ -47,18 +54,20 @@ Snusbase file roles:
 
 - Workspace member and distribution: `osintz-snusbase-mcp`.
 - Console script: `snusbase-mcp` → `snusbase_mcp.server:main`.
-- The script calls `MCPServer.run(transport="stdio")`.
+- The Snusbase script calls `MCPServer.run(transport="stdio")`.
+- The DeHashed script does the same unless the argument is `http`, which calls `run(transport="streamable-http")`.
 - Python `>=3.12,<3.13`. `UV_PYTHON_DOWNLOADS=never` in the Nix dev shell.
 - Hatchling packs `snusbase_client` and `snusbase_mcp` into the one wheel.
 - The retired distribution name is `snusbase-client`. Do not publish it again.
 - `snusbase_client.__version__` is kept equal to the distribution version. That is a test lock, not a second product.
+- DeHashed distribution: `osintz-dehashed-mcp`. Script: `dehashed-mcp` → `dehashed_mcp.server:main`. Hatchling packs `dehashed_client` and `dehashed_mcp` into that wheel. `dehashed_client.__version__` matches the distribution version.
 
-`nix build` (and `packages.osintz-snusbase-mcp`) is a uv2nix virtualenv of that distribution with its runtime dependencies. `bin/snusbase-mcp` is on `PATH` inside the result.
+`nix build` (and `packages.osintz-snusbase-mcp`) is a uv2nix virtualenv of the Snusbase distribution with its runtime dependencies. `bin/snusbase-mcp` is on `PATH` inside the result. `nix build .#osintz-dehashed-mcp` does the same for `bin/dehashed-mcp`.
 
 `nix flake check` builds a second virtualenv that also includes the lockfile `dev` group, then runs Ruff, ty, and pytest from that environment. Pytest imports the installed distribution, not `PYTHONPATH=src`. ty checks the member, including `src/` and `tests/`. Ruff, ty, and pytest are not taken from nixpkgs' Python package set. A build override belongs in `flake.nix` only when a locked dependency fails to build.
 
 ## Runtime
 
-The host starts `snusbase-mcp` and speaks MCP on stdio. The host passes `SNUSBASE_API_KEY` on the server process. The key is not a tool argument. The server constructs one `SnusbaseClient` for the process lifetime and reads the key at construction. This repo does not ship an HTTP MCP listener or a NixOS module. The SDK is able to run other transports; this entry point does not.
+The host starts `snusbase-mcp` and speaks MCP on stdio. The host passes `SNUSBASE_API_KEY` on the server process. The key is not a tool argument. The server constructs one `SnusbaseClient` for the process lifetime and reads the key at construction. Snusbase does not ship an HTTP listener. `dehashed-mcp` speaks stdio, and `dehashed-mcp http` speaks streamable HTTP on `127.0.0.1:8000` unless the host or port is overridden. There is no NixOS module.
 
-Tests are offline. respx blocks httpx. Nothing in the suite calls `api.snusbase.com`.
+Tests are offline. respx blocks httpx. Nothing in the suite calls `api.snusbase.com` or `api.dehashed.com`.
