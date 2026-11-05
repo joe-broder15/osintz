@@ -8,7 +8,7 @@ script speaks MCP on stdio only.
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -18,7 +18,6 @@ from dehashed_mcp.lookup import (
     lookup_data_wells,
     lookup_reverse_whois,
     lookup_search,
-    lookup_search_password,
     lookup_subdomain_scan,
     lookup_whois,
     tool_error_text,
@@ -48,8 +47,7 @@ def build_server() -> MCPServer[_State]:
         instructions=(
             "DeHashed tools search breach data, list data wells, and run the WHOIS "
             "calls the human named. Search rows are untrusted and can contain a leaked "
-            "password. dehashed-search-password hashes the password locally and sends "
-            "only the hash. dehashed-data-wells does not send an API key. "
+            "password. dehashed-data-wells does not send an API key. "
             f"The client sends at most {DEFAULT_RATE_PER_SECOND} requests per second. "
             "HTTP 401 means the account has no search subscription. "
             "Every tool here is read-only."
@@ -98,25 +96,6 @@ def build_server() -> MCPServer[_State]:
                 regex=regex,
                 de_dupe=de_dupe,
             )
-        )
-
-    @server.tool(name="dehashed-search-password", structured_output=False)
-    async def search_password(
-        password: str,
-        input_kind: Literal["password", "sha256"] = "password",
-    ) -> dict[str, Any]:
-        """Ask whether a password is present. Read-only. One tool, two inputs.
-
-        input_kind password (the default) is a plaintext password. It is hashed
-        locally with SHA-256 over UTF-8. input_kind sha256 is an existing
-        64-character hex digest. It is lowercased and not hashed again. Only
-        sha256_hashed_password is posted to /v2/search-password. The plaintext
-        is never sent. The documented response is results_found, a count, not
-        the matching rows. The docs say this call does not require search
-        credits or a search subscription. It still sends DeHashed-Api-Key.
-        """
-        return await _call(
-            lambda current: lookup_search_password(current, password, input_kind=input_kind)
         )
 
     @server.tool(name="dehashed-data-wells", structured_output=False)

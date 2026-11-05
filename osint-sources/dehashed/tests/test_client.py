@@ -2,7 +2,6 @@
 
 import ast
 import asyncio
-import hashlib
 import inspect
 import json
 from collections.abc import Awaitable, Callable
@@ -23,7 +22,6 @@ from dehashed_client import (
     DehashedRateLimitError,
     DehashedSubscriptionError,
     __version__,
-    hash_password,
 )
 from dehashed_client.client import (
     AUTH_HEADER,
@@ -35,7 +33,6 @@ from dehashed_client.client import (
 
 API_KEY = "test-key-not-a-secret"
 LEAK_KEY = "leak-key-0123456789"
-PASSWORD = "HorseBattery!"
 
 SEARCH_BODY = {
     "balance": 60,
@@ -70,7 +67,6 @@ WHOIS_BODY = {"unspecified": True}
 def _bodies() -> dict[str, dict[str, Any]]:
     return {
         "search": SEARCH_BODY,
-        "search_password": {"results_found": 1},
         "data_wells": WELLS_BODY,
         "whois": WHOIS_BODY,
         "reverse_whois": WHOIS_BODY,
@@ -81,8 +77,6 @@ def _bodies() -> dict[str, dict[str, Any]]:
 async def _invoke(client: DehashedClient, name: str) -> Any:
     if name == "search":
         return await client.search("ada@example.com")
-    if name == "search_password":
-        return await client.search_password(PASSWORD)
     if name == "data_wells":
         return await client.data_wells()
     if name == "whois":
@@ -95,10 +89,8 @@ async def _invoke(client: DehashedClient, name: str) -> Any:
 
 
 def _wire(name: str) -> dict[str, Any] | None:
-    digest = hashlib.sha256(PASSWORD.encode("utf-8")).hexdigest()
     bodies: dict[str, dict[str, Any] | None] = {
         "search": {"query": "ada@example.com"},
-        "search_password": {"sha256_hashed_password": digest},
         "data_wells": None,
         "whois": {"search_type": "whois", "domain": "example.com"},
         "reverse_whois": {"search_type": "reverse-whois", "include": ["ada"]},
@@ -178,42 +170,7 @@ def test_each_operation_matches_the_documented_call(router: Any, name: str) -> N
         assert "content-type" not in request.headers
         assert request.content == b""
     raw = request.content.decode()
-    assert PASSWORD not in raw
     assert API_KEY not in raw
-    if name == "search_password":
-        assert hash_password(PASSWORD) in raw
-        assert PASSWORD not in str(request.url)
-
-
-def test_password_hash_is_utf8_sha256_hex() -> None:
-    digest = hash_password("pá")
-    assert digest == hashlib.sha256("pá".encode()).hexdigest()
-    assert "pá" not in digest
-    with pytest.raises(DehashedBadRequestError, match="empty"):
-        hash_password("")
-
-
-def test_sha256_input_is_sent_as_lowercase_hex(router: Any) -> None:
-    supplied = "AB" * 32
-    _mock(router, "search_password", status=200, payload={"results_found": 1})
-    run(
-        lambda client: client.search_password(supplied, input_kind="sha256"),
-        api_key=API_KEY,
-    )
-    raw = router.calls[0].request.content.decode()
-    assert json.loads(raw) == {"sha256_hashed_password": supplied.lower()}
-    assert supplied not in raw
-    assert hashlib.sha256(supplied.encode()).hexdigest() not in raw
-
-
-@pytest.mark.parametrize("bad", ["", "abc", "a" * 63, "a" * 65, "g" * 64, "ab" * 31 + "zz"])
-def test_invalid_sha256_is_rejected_before_http(router: Any, bad: str) -> None:
-    async def call(client: DehashedClient) -> None:
-        with pytest.raises(DehashedBadRequestError, match="64 hexadecimal"):
-            await client.search_password(bad, input_kind="sha256")
-
-    run(call, api_key=API_KEY)
-    assert len(router.calls) == 0
 
 
 def test_data_wells_omits_the_key_even_when_one_is_configured(router: Any) -> None:
@@ -298,38 +255,19 @@ def test_documented_error_statuses(
     assert API_KEY not in str(err)
 
 
-def test_password_search_still_calls_when_search_would_be_unauthorized(router: Any) -> None:
-    _mock(
-        router,
-        "search_password",
-        status=200,
-        payload={"results_found": 0},
-    )
-    result = run(lambda client: client.search_password(PASSWORD), api_key=API_KEY)
-    assert result.data.results_found == 0
-    assert PASSWORD not in router.calls[0].request.content.decode()
-
-
-def test_error_body_redacts_the_key_and_a_long_password(router: Any) -> None:
+def test_error_body_redacts_the_key(router: Any) -> None:
     router.post(DEFAULT_BASE_URL + "/v2/search").mock(
         return_value=httpx.Response(400, json={"error": f"rejected {LEAK_KEY}"})
     )
-    router.post(DEFAULT_BASE_URL + "/v2/search-password").mock(
-        return_value=httpx.Response(400, json={"error": f"echo {PASSWORD}"})
-    )
 
-    async def call(client: DehashedClient) -> tuple[str, str]:
+    async def call(client: DehashedClient) -> str:
         with pytest.raises(DehashedBadRequestError) as key_error:
             await client.search("ada@example.com")
-        with pytest.raises(DehashedBadRequestError) as password_error:
-            await client.search_password(PASSWORD)
-        return str(key_error.value), str(password_error.value)
+        return str(key_error.value)
 
-    key_message, password_message = run(call, api_key=LEAK_KEY)
+    key_message = run(call, api_key=LEAK_KEY)
     assert LEAK_KEY not in key_message
     assert "<redacted>" in key_message
-    assert PASSWORD not in password_message
-    assert "<redacted>" in password_message
 
 
 def test_redirect_transport_and_schema_errors(router: Any) -> None:

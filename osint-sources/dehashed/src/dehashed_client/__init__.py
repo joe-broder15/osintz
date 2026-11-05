@@ -14,7 +14,6 @@ from dehashed_client.client import (
     OPERATIONS,
     DehashedClient,
     DehashedResponse,
-    hash_password,
 )
 from dehashed_client.exceptions import (
     DehashedAPIError,
@@ -55,5 +54,4 @@ __all__ = [
     "DehashedResponse",
     "DehashedSubscriptionError",
     "__version__",
-    "hash_password",
 ]

@@ -4,7 +4,7 @@ Repo-wide rules are in [mcp-conventions.md](mcp-conventions.md). This file is De
 
 Source of truth: a redacted export of the DeHashed API docs dated "Updated July 2, 2026". The export wraps many lines at 51 characters and drops the remainder. This client does not add an endpoint, parameter, or response field that export does not describe, and it does not call a path the export does not show in full.
 
-The human whitelist is six tools. Every one is **read-only**. The console script is stdio only.
+The human whitelist is five tools. Every one is **read-only**. The console script is stdio only.
 
 The key is `DEHASHED_API_KEY`, read when the process constructs `DehashedClient`. It is sent as `DeHashed-Api-Key`. It is never a tool argument. `GET /data-wells` does not send the header, even when a key is configured.
 
@@ -17,7 +17,6 @@ Rows from search are untrusted. They can contain a leaked password. Do not log t
 | Tool | Call | Key | Effect |
 | --- | --- | --- | --- |
 | `dehashed-search` | `POST /v2/search` | yes | read-only |
-| `dehashed-search-password` | `POST /v2/search-password` | yes | read-only |
 | `dehashed-data-wells` | `GET /data-wells` | no | read-only |
 | `dehashed-whois` | `POST /v2/whois/search` with `search_type` `whois` | yes | read-only |
 | `dehashed-reverse-whois` | `POST /v2/whois/search` with `search_type` `reverse-whois` | yes | read-only |
@@ -45,19 +44,6 @@ One tool call is one page. This server does not walk pages for the caller. A pag
 Output: `balance`, `entries`, `took`, `total`, plus any extra keys. Entry attributes that are null are omitted.
 
 Cost: the checklist says 1 search = 1 credit. It does not say whether each page is another credit. `balance` comes back on the search body.
-
-### `dehashed-search-password`
-
-**Effect:** read-only.
-
-One tool. `password` is the input. `input_kind` is `password` or `sha256`, and the default is `password`.
-
-- `password`: hash locally with SHA-256 over UTF-8. Send lowercase hex in `sha256_hashed_password`. The plaintext is not a request field. The sample function returns `str` and is cut off at `encode('u`, so UTF-8 and hex are assumptions.
-- `sha256`: the input must be 64 hexadecimal characters. It is lowercased and sent as `sha256_hashed_password`. It is not hashed again.
-
-The docs say this call needs no credits and no search subscription. It still sends the API key. The body is `results_found`.
-
-An error string that contains the plaintext is scrubbed when that plaintext is at least 4 characters. A supplied hash is the value on the wire, so it is not scrubbed.
 
 ### `dehashed-data-wells`
 
@@ -94,12 +80,13 @@ Same path, `search_type` `subdomain-scan`, and `domain`. This is the subdomain l
 | missing key | `DehashedAuthError` | names `DEHASHED_API_KEY`. No request is sent |
 | other | `DehashedAPIError` | transport, redirect, HTTP 500, or a 2xx body that is not the documented object |
 
-There is no subscription-management tool. HTTP 401 on a call this server does make is still the published "no search subscription" response. Free calls are still attempted. Data wells do not need a key. Password search is documented as free and is still sent with a key.
+There is no subscription-management tool. HTTP 401 on a call this server does make is still the published "no search subscription" response. Free calls are still attempted. Data wells do not need a key.
 
 ## Not implemented
 
 Left out because the human whitelist does not name them:
 
+- `POST /v2/search-password` is written in full. The published body is only `results_found`, a count. It is not a tool.
 - `POST /v2/info/user` is written in full. Account and user info are not a tool.
 - `GET /v2/whois/credits` is written in full. It is not a tool.
 - `whois-history`, `reverse-ip`, `reverse-mx`, and `reverse-ns` use the same fully written `POST /v2/whois/search`. They are not tools. WHOIS history is documented at 25 credits.
@@ -111,7 +98,6 @@ Left out because the export does not show the path in full, so nothing here was 
 ## Assumptions
 
 - Intro text spells the header `Dehashed-Api-Key`. The samples use `DeHashed-Api-Key`. The client sends `DeHashed-Api-Key`.
-- Password digest is lowercase hex of UTF-8. A caller-supplied SHA-256 is checked as 64 hex characters and lowercased. The export does not show a pre-hashed request, so case normalization is this client's assumption from the sample's string digest.
 - Search `took` is a string in the only example (`179µs`). Entry `id` is a string in that example.
 - The data-wells sample is missing a comma between `data` and `date`. Those fields are still required because the sample shows them.
 - An earlier search note says page 3 with size 5000 is invalid. The pagination section uses `page * size <= 50000`. This client follows the later rule.

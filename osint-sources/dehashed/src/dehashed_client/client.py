@@ -14,8 +14,6 @@ are truncated there, so this client does not call them.
 """
 
 import asyncio
-import hashlib
-import re
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable, Mapping
@@ -38,8 +36,6 @@ from dehashed_client.exceptions import (
 from dehashed_client.models import (
     DataWellsQuery,
     DataWellsResponse,
-    PasswordSearchRequest,
-    PasswordSearchResponse,
     ReverseWhoisRequest,
     SearchRequest,
     SearchResponse,
@@ -54,7 +50,6 @@ ENV_API_KEY = "DEHASHED_API_KEY"
 AUTH_HEADER = "DeHashed-Api-Key"
 
 PATH_SEARCH = "/v2/search"
-PATH_SEARCH_PASSWORD = "/v2/search-password"
 PATH_DATA_WELLS = "/data-wells"
 PATH_WHOIS_SEARCH = "/v2/whois/search"
 
@@ -62,7 +57,6 @@ PATH_WHOIS_SEARCH = "/v2/whois/search"
 # Each path is complete in the export. Truncated monitoring URLs are not here.
 OPERATIONS: dict[str, tuple[str, str, bool]] = {
     "search": ("POST", PATH_SEARCH, True),
-    "search_password": ("POST", PATH_SEARCH_PASSWORD, True),
     "data_wells": ("GET", PATH_DATA_WELLS, False),
     "whois": ("POST", PATH_WHOIS_SEARCH, True),
     "reverse_whois": ("POST", PATH_WHOIS_SEARCH, True),
@@ -135,37 +129,6 @@ class _SlidingWindow:
                     return
                 wait = self.window_seconds - (now - self._hits[0])
             await self._sleep(wait if wait > 0 else 0.0)
-
-
-_SHA256_HEX = re.compile(r"^[0-9a-fA-F]{64}$")
-
-
-def hash_password(password: str) -> str:
-    """Lowercase SHA-256 hex digest of the UTF-8 password.
-
-    The sample function returns ``str`` and is cut off at ``encode('u``. UTF-8
-    and hex are the assumption that produces a string digest. The plaintext is
-    not returned.
-    """
-    if password == "":
-        raise DehashedBadRequestError("Password is empty.")
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
-
-
-def password_search_digest(value: str, input_kind: str = "password") -> str:
-    """Digest for ``POST /v2/search-password``.
-
-    ``password`` hashes locally. ``sha256`` must already be 64 hex characters
-    and is lowercased, not hashed again. The published samples use a string
-    digest, so the wire value is lowercase hex.
-    """
-    if input_kind == "password":
-        return hash_password(value)
-    if input_kind == "sha256":
-        if _SHA256_HEX.fullmatch(value) is None:
-            raise DehashedBadRequestError("sha256 input must be 64 hexadecimal characters.")
-        return value.lower()
-    raise DehashedBadRequestError("input_kind must be password or sha256.")
 
 
 def _resolve_api_key(api_key: str | None) -> str | None:
@@ -356,33 +319,6 @@ class DehashedClient:
             regex=regex,
             de_dupe=de_dupe,
         )
-
-    async def search_password(
-        self,
-        password: str,
-        *,
-        input_kind: str = "password",
-    ) -> DehashedResponse[PasswordSearchResponse]:
-        """``POST /v2/search-password``. Sends a SHA-256 hex digest, never plaintext.
-
-        ``input_kind="password"`` hashes locally. ``input_kind="sha256"`` sends
-        that digest after lowercasing it.
-        """
-        digest = password_search_digest(password, input_kind)
-        try:
-            return await self._json(
-                "search_password",
-                PasswordSearchResponse,
-                PasswordSearchRequest,
-                sha256_hashed_password=digest,
-            )
-        except DehashedError as exc:
-            if input_kind != "password":
-                raise
-            redacted = _redact(exc.message, password)
-            if redacted == exc.message:
-                raise
-            raise type(exc)(redacted, status_code=exc.status_code) from None
 
     async def data_wells(
         self,

@@ -2,7 +2,6 @@
 
 import ast
 import asyncio
-import hashlib
 import importlib.metadata
 import inspect
 import json
@@ -20,11 +19,9 @@ from dehashed_mcp.lookup import lookup_search
 from dehashed_mcp.server import build_server, main
 
 API_KEY = "test-key-not-a-secret"
-PASSWORD = "HorseBattery!"
 
 TOOL_NAMES = {
     "dehashed-search",
-    "dehashed-search-password",
     "dehashed-data-wells",
     "dehashed-whois",
     "dehashed-reverse-whois",
@@ -113,13 +110,7 @@ def test_server_exposes_the_dehashed_tools(monkeypatch: pytest.MonkeyPatch) -> N
         assert "read-only" in search
         assert "through_page" not in search
         assert "10000" in search or "10,000" in search
-        password = tools["dehashed-search-password"].description.lower()
-        assert "sha-256" in password
-        assert "plaintext" in password
-        assert "sha256" in password
-        props = tools["dehashed-search-password"].input_schema["properties"]
-        assert set(props) == {"password", "input_kind"}
-        assert props["input_kind"]["default"] == "password"
+        assert "dehashed-search-password" not in tools
         wells = tools["dehashed-data-wells"].description.lower()
         assert "no api key" in wells
         assert set(tools["dehashed-search"].input_schema["properties"]) == {
@@ -130,7 +121,6 @@ def test_server_exposes_the_dehashed_tools(monkeypatch: pytest.MonkeyPatch) -> N
             "regex",
             "de_dupe",
         }
-        assert "password" in tools["dehashed-search-password"].input_schema["properties"]
         assert "api_key" not in tools["dehashed-search"].input_schema["properties"]
 
     run(body)
@@ -185,41 +175,6 @@ def test_search_tool_returns_rows_and_maps_errors(
 
     run(body)
     assert router.calls[0].request.headers[AUTH_HEADER] == API_KEY
-
-
-def test_password_tool_hashes_plaintext_and_passes_a_digest(
-    router: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv(ENV_API_KEY, API_KEY)
-    supplied = "CD" * 32
-    router.post(DEFAULT_BASE_URL + "/v2/search-password").mock(
-        return_value=httpx.Response(200, json={"results_found": 2})
-    )
-
-    async def body(server: Any) -> None:
-        found = _json(await server.call_tool("dehashed-search-password", {"password": PASSWORD}))
-        assert found == {"results_found": 2}
-        hashed = _json(
-            await server.call_tool(
-                "dehashed-search-password",
-                {"password": supplied, "input_kind": "sha256"},
-            )
-        )
-        assert hashed == {"results_found": 2}
-        with pytest.raises(ToolError, match="64 hexadecimal"):
-            await server.call_tool(
-                "dehashed-search-password",
-                {"password": "not-a-hash", "input_kind": "sha256"},
-            )
-
-    run(body)
-    first = router.calls[0].request.content.decode()
-    second = router.calls[1].request.content.decode()
-    assert PASSWORD not in first
-    assert hashlib.sha256(PASSWORD.encode()).hexdigest() in first
-    assert json.loads(second) == {"sha256_hashed_password": supplied.lower()}
-    assert supplied not in second
-    assert len(router.calls) == 2
 
 
 def test_data_wells_tool_works_without_a_key(router: Any) -> None:

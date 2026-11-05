@@ -10,8 +10,6 @@ Repo-wide rules are in [docs/mcp-conventions.md](../../docs/mcp-conventions.md).
 
 `dehashed-search` can return plaintext passwords and other breach fields. Treat every field as untrusted. Do not render results as HTML. Do not log raw rows.
 
-`dehashed-search-password` is one read-only tool. `input_kind` defaults to `password`: the value is hashed in this process with SHA-256 (UTF-8, lowercase hex). `input_kind` `sha256` must be 64 hex characters; it is lowercased and not hashed again. Only `sha256_hashed_password` is posted. Plaintext can still appear in the host's tool-call log when `input_kind` is `password`, because it is a tool argument. The response is a count, `results_found`.
-
 You are responsible for the DeHashed terms of service. The export says they are on the DeHashed website and does not include the URL.
 
 Keep the key in `DEHASHED_API_KEY`. The MCP server reads it when it constructs the client. It is not a tool argument. `repr` and `str` on the client redact it.
@@ -60,16 +58,15 @@ The bare command waits for MCP. It does not call DeHashed until a host sends a t
 
 Every name starts with `dehashed-`. `search` and `whois` are not registered.
 
-All six tools are read-only.
+All five tools are read-only.
 
 - `dehashed-search` posts `/v2/search`. Optional `page`, `size` (1..10000), `wildcard`, `regex`, `de_dupe`. Omitted page and size are not sent. DeHashed's defaults are 1 and 100. `page * size` must be at most 50,000, using those defaults when a value is omitted. `regex` and `wildcard` cannot both be true. One call is one page.
-- `dehashed-search-password` posts `/v2/search-password`. `input_kind` `password` (default) is hashed locally. `input_kind` `sha256` is 64 hex characters, lowercased, and not hashed again. Documented as free of search credits and of a search subscription. The key is still sent.
 - `dehashed-data-wells` is `GET /data-wells`. No key is sent. `count` is 20 or 50. `sort` is `added`, `name`, `date`, or `records`, with an optional `-ASC`.
 - `dehashed-whois` posts `/v2/whois/search` with `search_type` `whois`.
 - `dehashed-reverse-whois` uses that same path with `search_type` `reverse-whois`.
 - `dehashed-subdomain-scan` is the subdomain lookup. Same path, `search_type` `subdomain-scan`.
 
-The export does not show the WHOIS response JSON. Extra keys are kept. Monitoring, user info, WHOIS credits, WHOIS history, and reverse IP, MX, and NS are not tools. Monitoring paths are truncated in the export and were not reconstructed.
+The export does not show the WHOIS response JSON. Extra keys are kept. `POST /v2/search-password` only returns a count, so it is not a tool. Monitoring, user info, WHOIS credits, WHOIS history, and reverse IP, MX, and NS are not tools. Monitoring paths are truncated in the export and were not reconstructed.
 
 The client sends at most 20 requests per second. It does not retry a 429 or a pagination 500.
 
@@ -77,7 +74,7 @@ HTTP 401 is the published "no search subscription" response. It is not a missing
 
 ## Human test
 
-These commands can call the live API. The automated suite does not. Search spends credits. The checklist says 1 search = 1 credit and does not say whether each page is another credit. WHOIS history is documented at 25 credits. Password search and data wells are documented as free. Monitoring writes change the account. Do not paste search output into a ticket.
+These commands can call the live API. The automated suite does not. Search spends credits. The checklist says 1 search = 1 credit and does not say whether each page is another credit. WHOIS history is documented at 25 credits and is not a tool. Data wells are documented as free. Monitoring writes change the account and are not tools. Do not paste search output into a ticket.
 
 Representative calls, from the repo root, after `uv sync --package osintz-dehashed-mcp --group dev`:
 

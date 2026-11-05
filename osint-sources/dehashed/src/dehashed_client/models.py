@@ -62,14 +62,6 @@ class SearchRequest(BaseModel):
         return self
 
 
-class PasswordSearchRequest(BaseModel):
-    """Body of ``POST /v2/search-password``. The value is a SHA-256 hex digest."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    sha256_hashed_password: str = Field(min_length=1)
-
-
 class DataWellsQuery(BaseModel):
     """Query string of ``GET /data-wells``. ``count`` is 20 or 50 when set."""
 
@@ -152,14 +144,6 @@ class SearchResponse(BaseModel):
     entries: list[SearchEntry]
     took: str
     total: int
-
-
-class PasswordSearchResponse(BaseModel):
-    """Body of ``POST /v2/search-password``."""
-
-    model_config = ConfigDict(extra="allow")
-
-    results_found: int
 
 
 class DataWell(BaseModel):
