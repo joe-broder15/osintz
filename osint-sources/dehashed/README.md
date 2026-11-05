@@ -10,7 +10,7 @@ Repo-wide rules are in [docs/mcp-conventions.md](../../docs/mcp-conventions.md).
 
 `dehashed-search` can return plaintext passwords and other breach fields. Treat every field as untrusted. Do not render results as HTML. Do not log raw rows.
 
-`dehashed-search-password` takes a password and hashes it in this process with SHA-256 (UTF-8, lowercase hex). Only `sha256_hashed_password` is posted. The plaintext can still appear in the host's tool-call log, because it is a tool argument. The response is a count, `results_found`.
+`dehashed-search-password` is one read-only tool. `input_kind` defaults to `password`: the value is hashed in this process with SHA-256 (UTF-8, lowercase hex). `input_kind` `sha256` must be 64 hex characters; it is lowercased and not hashed again. Only `sha256_hashed_password` is posted. Plaintext can still appear in the host's tool-call log when `input_kind` is `password`, because it is a tool argument. The response is a count, `results_found`.
 
 You are responsible for the DeHashed terms of service. The export says they are on the DeHashed website and does not include the URL.
 
@@ -63,7 +63,7 @@ Every name starts with `dehashed-`. `search` and `whois` are not registered.
 All six tools are read-only.
 
 - `dehashed-search` posts `/v2/search`. Optional `page`, `size` (1..10000), `wildcard`, `regex`, `de_dupe`. Omitted page and size are not sent. DeHashed's defaults are 1 and 100. `page * size` must be at most 50,000, using those defaults when a value is omitted. `regex` and `wildcard` cannot both be true. One call is one page.
-- `dehashed-search-password` hashes locally and posts `/v2/search-password`. Documented as free of search credits and of a search subscription. The key is still sent.
+- `dehashed-search-password` posts `/v2/search-password`. `input_kind` `password` (default) is hashed locally. `input_kind` `sha256` is 64 hex characters, lowercased, and not hashed again. Documented as free of search credits and of a search subscription. The key is still sent.
 - `dehashed-data-wells` is `GET /data-wells`. No key is sent. `count` is 20 or 50. `sort` is `added`, `name`, `date`, or `records`, with an optional `-ASC`.
 - `dehashed-whois` posts `/v2/whois/search` with `search_type` `whois`.
 - `dehashed-reverse-whois` uses that same path with `search_type` `reverse-whois`.

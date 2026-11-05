@@ -65,8 +65,13 @@ async def lookup_search(
     )
 
 
-async def lookup_search_password(client: DehashedClient, password: str) -> dict[str, Any]:
-    return _dump(await client.search_password(password))
+async def lookup_search_password(
+    client: DehashedClient,
+    password: str,
+    *,
+    input_kind: str = "password",
+) -> dict[str, Any]:
+    return _dump(await client.search_password(password, input_kind=input_kind))
 
 
 async def lookup_data_wells(

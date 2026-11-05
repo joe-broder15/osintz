@@ -15,6 +15,7 @@ are truncated there, so this client does not call them.
 
 import asyncio
 import hashlib
+import re
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable, Mapping
@@ -136,6 +137,9 @@ class _SlidingWindow:
             await self._sleep(wait if wait > 0 else 0.0)
 
 
+_SHA256_HEX = re.compile(r"^[0-9a-fA-F]{64}$")
+
+
 def hash_password(password: str) -> str:
     """Lowercase SHA-256 hex digest of the UTF-8 password.
 
@@ -146,6 +150,22 @@ def hash_password(password: str) -> str:
     if password == "":
         raise DehashedBadRequestError("Password is empty.")
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
+def password_search_digest(value: str, input_kind: str = "password") -> str:
+    """Digest for ``POST /v2/search-password``.
+
+    ``password`` hashes locally. ``sha256`` must already be 64 hex characters
+    and is lowercased, not hashed again. The published samples use a string
+    digest, so the wire value is lowercase hex.
+    """
+    if input_kind == "password":
+        return hash_password(value)
+    if input_kind == "sha256":
+        if _SHA256_HEX.fullmatch(value) is None:
+            raise DehashedBadRequestError("sha256 input must be 64 hexadecimal characters.")
+        return value.lower()
+    raise DehashedBadRequestError("input_kind must be password or sha256.")
 
 
 def _resolve_api_key(api_key: str | None) -> str | None:
@@ -337,9 +357,18 @@ class DehashedClient:
             de_dupe=de_dupe,
         )
 
-    async def search_password(self, password: str) -> DehashedResponse[PasswordSearchResponse]:
-        """``POST /v2/search-password``. Hashes locally. The plaintext is not sent."""
-        digest = hash_password(password)
+    async def search_password(
+        self,
+        password: str,
+        *,
+        input_kind: str = "password",
+    ) -> DehashedResponse[PasswordSearchResponse]:
+        """``POST /v2/search-password``. Sends a SHA-256 hex digest, never plaintext.
+
+        ``input_kind="password"`` hashes locally. ``input_kind="sha256"`` sends
+        that digest after lowercasing it.
+        """
+        digest = password_search_digest(password, input_kind)
         try:
             return await self._json(
                 "search_password",
@@ -348,6 +377,8 @@ class DehashedClient:
                 sha256_hashed_password=digest,
             )
         except DehashedError as exc:
+            if input_kind != "password":
+                raise
             redacted = _redact(exc.message, password)
             if redacted == exc.message:
                 raise

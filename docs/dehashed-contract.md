@@ -50,11 +50,14 @@ Cost: the checklist says 1 search = 1 credit. It does not say whether each page 
 
 **Effect:** read-only.
 
-The tool argument is the password. The client hashes it with SHA-256 over UTF-8 and sends lowercase hex in `sha256_hashed_password`. The plaintext is not a request field. The sample function returns `str` and is cut off at `encode('u`, so UTF-8 and hex are assumptions.
+One tool. `password` is the input. `input_kind` is `password` or `sha256`, and the default is `password`.
+
+- `password`: hash locally with SHA-256 over UTF-8. Send lowercase hex in `sha256_hashed_password`. The plaintext is not a request field. The sample function returns `str` and is cut off at `encode('u`, so UTF-8 and hex are assumptions.
+- `sha256`: the input must be 64 hexadecimal characters. It is lowercased and sent as `sha256_hashed_password`. It is not hashed again.
 
 The docs say this call needs no credits and no search subscription. It still sends the API key. The body is `results_found`.
 
-An error string that contains the password is scrubbed when the password is at least 4 characters.
+An error string that contains the plaintext is scrubbed when that plaintext is at least 4 characters. A supplied hash is the value on the wire, so it is not scrubbed.
 
 ### `dehashed-data-wells`
 
@@ -108,7 +111,7 @@ Left out because the export does not show the path in full, so nothing here was 
 ## Assumptions
 
 - Intro text spells the header `Dehashed-Api-Key`. The samples use `DeHashed-Api-Key`. The client sends `DeHashed-Api-Key`.
-- Password digest is lowercase hex of UTF-8.
+- Password digest is lowercase hex of UTF-8. A caller-supplied SHA-256 is checked as 64 hex characters and lowercased. The export does not show a pre-hashed request, so case normalization is this client's assumption from the sample's string digest.
 - Search `took` is a string in the only example (`179µs`). Entry `id` is a string in that example.
 - The data-wells sample is missing a comma between `data` and `date`. Those fields are still required because the sample shows them.
 - An earlier search note says page 3 with size 5000 is invalid. The pagination section uses `page * size <= 50000`. This client follows the later rule.

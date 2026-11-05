@@ -193,6 +193,29 @@ def test_password_hash_is_utf8_sha256_hex() -> None:
         hash_password("")
 
 
+def test_sha256_input_is_sent_as_lowercase_hex(router: Any) -> None:
+    supplied = "AB" * 32
+    _mock(router, "search_password", status=200, payload={"results_found": 1})
+    run(
+        lambda client: client.search_password(supplied, input_kind="sha256"),
+        api_key=API_KEY,
+    )
+    raw = router.calls[0].request.content.decode()
+    assert json.loads(raw) == {"sha256_hashed_password": supplied.lower()}
+    assert supplied not in raw
+    assert hashlib.sha256(supplied.encode()).hexdigest() not in raw
+
+
+@pytest.mark.parametrize("bad", ["", "abc", "a" * 63, "a" * 65, "g" * 64, "ab" * 31 + "zz"])
+def test_invalid_sha256_is_rejected_before_http(router: Any, bad: str) -> None:
+    async def call(client: DehashedClient) -> None:
+        with pytest.raises(DehashedBadRequestError, match="64 hexadecimal"):
+            await client.search_password(bad, input_kind="sha256")
+
+    run(call, api_key=API_KEY)
+    assert len(router.calls) == 0
+
+
 def test_data_wells_omits_the_key_even_when_one_is_configured(router: Any) -> None:
     _mock(router, "data_wells", status=200, payload=WELLS_BODY)
     run(

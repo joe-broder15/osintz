@@ -8,7 +8,7 @@ script speaks MCP on stdio only.
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -101,16 +101,23 @@ def build_server() -> MCPServer[_State]:
         )
 
     @server.tool(name="dehashed-search-password", structured_output=False)
-    async def search_password(password: str) -> dict[str, Any]:
-        """Ask whether a password is present. Read-only. The plaintext is not sent.
+    async def search_password(
+        password: str,
+        input_kind: Literal["password", "sha256"] = "password",
+    ) -> dict[str, Any]:
+        """Ask whether a password is present. Read-only. One tool, two inputs.
 
-        The password is hashed locally with SHA-256 over UTF-8 and only the
-        hex digest is posted to /v2/search-password. The documented response
-        is results_found, a count, not the matching rows. The docs say this
-        call does not require search credits or a search subscription. It
-        still sends DeHashed-Api-Key.
+        input_kind password (the default) is a plaintext password. It is hashed
+        locally with SHA-256 over UTF-8. input_kind sha256 is an existing
+        64-character hex digest. It is lowercased and not hashed again. Only
+        sha256_hashed_password is posted to /v2/search-password. The plaintext
+        is never sent. The documented response is results_found, a count, not
+        the matching rows. The docs say this call does not require search
+        credits or a search subscription. It still sends DeHashed-Api-Key.
         """
-        return await _call(lambda current: lookup_search_password(current, password))
+        return await _call(
+            lambda current: lookup_search_password(current, password, input_kind=input_kind)
+        )
 
     @server.tool(name="dehashed-data-wells", structured_output=False)
     async def data_wells(
