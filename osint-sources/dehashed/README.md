@@ -4,11 +4,11 @@ MCP server for the documented DeHashed API. Distribution name: `osintz-dehashed-
 
 The HTTP client lives in `src/dehashed_client` and ships inside this distribution. It is not a separate package. The client does not import MCP.
 
-The contract, including the truncated monitoring URLs and the other ambiguities, is [docs/dehashed-contract.md](../../docs/dehashed-contract.md). This is not an official DeHashed library. No API key is stored in this repository.
+Repo-wide rules are in [docs/mcp-conventions.md](../../docs/mcp-conventions.md). The DeHashed contract is [docs/dehashed-contract.md](../../docs/dehashed-contract.md). This is not an official DeHashed library. No API key is stored in this repository.
 
 ## Safety
 
-`dehashed-search` and `dehashed-monitoring-report` can return plaintext passwords and other breach fields. Treat every field as untrusted. Do not render results as HTML. Do not log raw rows.
+`dehashed-search` can return plaintext passwords and other breach fields. Treat every field as untrusted. Do not render results as HTML. Do not log raw rows.
 
 `dehashed-search-password` takes a password and hashes it in this process with SHA-256 (UTF-8, lowercase hex). Only `sha256_hashed_password` is posted. The plaintext can still appear in the host's tool-call log, because it is a tool argument. The response is a count, `results_found`.
 
@@ -60,12 +60,16 @@ The bare command waits for MCP. It does not call DeHashed until a host sends a t
 
 Every name starts with `dehashed-`. `search` and `whois` are not registered.
 
-- `dehashed-search` posts `/v2/search`. Optional `page`, `size` (1..10000), `wildcard`, `regex`, `de_dupe`. Omitted page and size are not sent. DeHashed's defaults are 1 and 100. `page * size` must be at most 50,000, using those defaults when a value is omitted. `regex` and `wildcard` cannot both be true. `through_page` is local: it fetches pages 1..N in order inside this call. Do not combine it with `page`. Each page is a separate request.
+All six tools are read-only.
+
+- `dehashed-search` posts `/v2/search`. Optional `page`, `size` (1..10000), `wildcard`, `regex`, `de_dupe`. Omitted page and size are not sent. DeHashed's defaults are 1 and 100. `page * size` must be at most 50,000, using those defaults when a value is omitted. `regex` and `wildcard` cannot both be true. One call is one page.
 - `dehashed-search-password` hashes locally and posts `/v2/search-password`. Documented as free of search credits and of a search subscription. The key is still sent.
-- `dehashed-user` reads `/v2/info/user`.
 - `dehashed-data-wells` is `GET /data-wells`. No key is sent. `count` is 20 or 50. `sort` is `added`, `name`, `date`, or `records`, with an optional `-ASC`.
-- Monitoring tools cover tasks, reports, channels, and domains, including the documented create, update, and delete calls. Those writes change the DeHashed account. Paths for this group are reconstructed from truncated URLs. See the contract before using them against the live API.
-- WHOIS tools cover `whois`, `whois-history` (the docs say 25 credits), `reverse-whois`, `reverse-ip`, `reverse-mx`, `reverse-ns`, `subdomain-scan`, and `whois-credits`. Reverse IP, MX, and NS send the address in the field named `domain`. The export does not show the search response JSON. Extra keys are kept.
+- `dehashed-whois` posts `/v2/whois/search` with `search_type` `whois`.
+- `dehashed-reverse-whois` uses that same path with `search_type` `reverse-whois`.
+- `dehashed-subdomain-scan` is the subdomain lookup. Same path, `search_type` `subdomain-scan`.
+
+The export does not show the WHOIS response JSON. Extra keys are kept. Monitoring, user info, WHOIS credits, WHOIS history, and reverse IP, MX, and NS are not tools. Monitoring paths are truncated in the export and were not reconstructed.
 
 The client sends at most 20 requests per second. It does not retry a 429 or a pagination 500.
 
@@ -96,8 +100,8 @@ async def main() -> None:
         print(sorted(tool.name for tool in listed.tools))
         wells = await client.call_tool("dehashed-data-wells", {"count": 20, "page": 1})
         print(wells)
-        user = await client.call_tool("dehashed-user", {})
-        print(user)
+        whois = await client.call_tool("dehashed-whois", {"domain": "example.com"})
+        print(whois)
 
 asyncio.run(main())
 PY
@@ -111,8 +115,7 @@ curl -sS 'https://api.dehashed.com/data-wells?count=20&page=1'
 
 What this repository has not verified against `https://api.dehashed.com`:
 
-- Live status codes, including whether `/v2/info/user` and get-channels are POST or GET.
-- The full monitoring paths. The export cuts them. `get-reports` is the one whose visible prefix does not match the function name.
+- Live status codes for the six tools.
 - Whether each search page costs a credit.
 - The WHOIS search JSON.
 - The unit string on `took` beyond the one example.

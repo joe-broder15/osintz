@@ -5,7 +5,8 @@ Monorepo of independently installable OSINT MCP servers. One uv workspace member
 Read these before changing code:
 
 - [docs/architecture.md](docs/architecture.md)
-- [docs/source-contract.md](docs/source-contract.md)
+- [docs/mcp-conventions.md](docs/mcp-conventions.md)
+- [docs/snusbase-contract.md](docs/snusbase-contract.md)
 - [docs/dehashed-contract.md](docs/dehashed-contract.md)
 - [docs/adding-a-source.md](docs/adding-a-source.md)
 - [osint-sources/snusbase/README.md](osint-sources/snusbase/README.md)

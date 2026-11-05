@@ -31,7 +31,6 @@ from dehashed_client.client import (
     DEFAULT_TIMEOUT_SECONDS,
     ENV_API_KEY,
     OPERATIONS,
-    PATH_GET_REPORTS,
 )
 
 API_KEY = "test-key-not-a-secret"
@@ -65,93 +64,17 @@ WELLS_BODY = {
         }
     ],
 }
-SUCCESS = {"success": True}
-USER_BODY = {"search_access": False, "search_credits": 0, "whois_credits": 1}
-TASKS_BODY = {
-    "tasks": [
-        {
-            "id": "t",
-            "type": "email",
-            "value": "ada@example.com",
-            "active": True,
-            "created": "2023-01-01T12:00:00.000000Z",
-            "updated": "2023-01-01T12:00:00.000000Z",
-        }
-    ],
-    "total": 1,
-    "active": 1,
-    "inactive": 0,
-    "max": 10,
-    "next_page": False,
-}
-TASK_BODY = {
-    "type": "email",
-    "value": "ada@example.com",
-    "active": True,
-    "created": "2023-01-01T12:00:00.000000Z",
-    "updated": "2023-01-01T12:00:00.000000Z",
-}
-REPORTS_BODY = {
-    "reports": [{"id": "r", "timestamp": "2023-01-01T12:00:00.000000Z"}],
-    "next_page": False,
-}
-REPORT_BODY = {
-    "tasks": [
-        {
-            "id": "ref",
-            "key": "email",
-            "value": "ada@example.com",
-            "results_count": 1,
-            "timestamp": "2023-01-01T12:00:00.000000Z",
-            "results": [{"id": "1", "email": ["ada@example.com"]}],
-        }
-    ]
-}
-CHANNELS_BODY = {
-    "channels": [
-        {
-            "id": "c",
-            "type": "webhook",
-            "value": "https://example.com/hook",
-            "updated_at": "2023-01-01T12:00:00.000000Z",
-        }
-    ]
-}
-DOMAINS_BODY = {
-    "domains": [{"id": "d", "domain": "example.com", "updated": "2023-01-01T12:00:00.000000Z"}]
-}
 WHOIS_BODY = {"unspecified": True}
-CREDITS_BODY = {"whois_credits": 4}
 
 
 def _bodies() -> dict[str, dict[str, Any]]:
     return {
         "search": SEARCH_BODY,
         "search_password": {"results_found": 1},
-        "user_info": USER_BODY,
         "data_wells": WELLS_BODY,
-        "create_task": SUCCESS,
-        "update_task": SUCCESS,
-        "update_task_active": SUCCESS,
-        "delete_task": SUCCESS,
-        "get_tasks": TASKS_BODY,
-        "get_task": TASK_BODY,
-        "get_reports": REPORTS_BODY,
-        "get_report": REPORT_BODY,
-        "get_channels": CHANNELS_BODY,
-        "update_channel": SUCCESS,
-        "delete_channel": SUCCESS,
-        "get_domains": DOMAINS_BODY,
-        "update_domain": SUCCESS,
-        "clear_domain": SUCCESS,
         "whois": WHOIS_BODY,
-        "whois_history": WHOIS_BODY,
         "reverse_whois": WHOIS_BODY,
-        "reverse_ip": WHOIS_BODY,
-        "reverse_mx": WHOIS_BODY,
-        "reverse_ns": WHOIS_BODY,
         "subdomain_scan": WHOIS_BODY,
-        "whois_credits": CREDITS_BODY,
     }
 
 
@@ -160,54 +83,14 @@ async def _invoke(client: DehashedClient, name: str) -> Any:
         return await client.search("ada@example.com")
     if name == "search_password":
         return await client.search_password(PASSWORD)
-    if name == "user_info":
-        return await client.user_info()
     if name == "data_wells":
         return await client.data_wells()
-    if name == "create_task":
-        return await client.create_task("email", "ada@example.com")
-    if name == "update_task":
-        return await client.update_task("t", "email", "ada@example.com")
-    if name == "update_task_active":
-        return await client.update_task_active("t", False)
-    if name == "delete_task":
-        return await client.delete_task("t")
-    if name == "get_tasks":
-        return await client.get_tasks()
-    if name == "get_task":
-        return await client.get_task("t")
-    if name == "get_reports":
-        return await client.get_reports()
-    if name == "get_report":
-        return await client.get_report("r")
-    if name == "get_channels":
-        return await client.get_channels()
-    if name == "update_channel":
-        return await client.update_channel("webhook", "https://example.com/hook")
-    if name == "delete_channel":
-        return await client.delete_channel("email")
-    if name == "get_domains":
-        return await client.get_domains()
-    if name == "update_domain":
-        return await client.update_domain("d", "example.com")
-    if name == "clear_domain":
-        return await client.clear_domain("d")
     if name == "whois":
         return await client.whois("example.com")
-    if name == "whois_history":
-        return await client.whois_history("example.com")
     if name == "reverse_whois":
         return await client.reverse_whois(include=["ada"])
-    if name == "reverse_ip":
-        return await client.reverse_ip("8.8.8.8")
-    if name == "reverse_mx":
-        return await client.reverse_mx("mx.example.com")
-    if name == "reverse_ns":
-        return await client.reverse_ns("ns.example.com")
     if name == "subdomain_scan":
         return await client.subdomain_scan("example.com")
-    if name == "whois_credits":
-        return await client.whois_credits()
     raise AssertionError(name)
 
 
@@ -216,30 +99,10 @@ def _wire(name: str) -> dict[str, Any] | None:
     bodies: dict[str, dict[str, Any] | None] = {
         "search": {"query": "ada@example.com"},
         "search_password": {"sha256_hashed_password": digest},
-        "user_info": {},
         "data_wells": None,
-        "create_task": {"type": "email", "value": "ada@example.com"},
-        "update_task": {"id": "t", "type": "email", "value": "ada@example.com"},
-        "update_task_active": {"id": "t", "active": False},
-        "delete_task": {"id": "t"},
-        "get_tasks": {},
-        "get_task": {"id": "t"},
-        "get_reports": {},
-        "get_report": {"id": "r"},
-        "get_channels": {},
-        "update_channel": {"type": "webhook", "value": "https://example.com/hook"},
-        "delete_channel": {"channel": "email"},
-        "get_domains": None,
-        "update_domain": {"id": "d", "domain": "example.com"},
-        "clear_domain": {"id": "d"},
         "whois": {"search_type": "whois", "domain": "example.com"},
-        "whois_history": {"search_type": "whois-history", "domain": "example.com"},
         "reverse_whois": {"search_type": "reverse-whois", "include": ["ada"]},
-        "reverse_ip": {"search_type": "reverse-ip", "domain": "8.8.8.8"},
-        "reverse_mx": {"search_type": "reverse-mx", "domain": "mx.example.com"},
-        "reverse_ns": {"search_type": "reverse-ns", "domain": "ns.example.com"},
         "subdomain_scan": {"search_type": "subdomain-scan", "domain": "example.com"},
-        "whois_credits": None,
     }
     return bodies[name]
 
@@ -283,13 +146,14 @@ def test_public_methods_match_operations() -> None:
         for name, value in vars(DehashedClient).items()
         if not name.startswith("_") and inspect.isfunction(value)
     }
-    assert methods - {"aclose"} == set(OPERATIONS) | {"search_through"}
+    assert methods - {"aclose"} == set(OPERATIONS)
     assert __version__ == "0.1.0"
-    assert PATH_GET_REPORTS == "/v2/monitoring/get-reports"
-    assert OPERATIONS["get_reports"][1] == PATH_GET_REPORTS
-    assert OPERATIONS["user_info"][0] == "POST"
-    assert OPERATIONS["get_channels"][0] == "POST"
+    assert "user_info" not in OPERATIONS
+    assert "whois_credits" not in OPERATIONS
+    assert not any("monitoring" in path for _method, path, _auth in OPERATIONS.values())
     assert OPERATIONS["data_wells"] == ("GET", "/data-wells", False)
+    assert OPERATIONS["whois"][1] == "/v2/whois/search"
+    assert OPERATIONS["subdomain_scan"][1] == "/v2/whois/search"
 
 
 @pytest.mark.parametrize("name", list(OPERATIONS))
@@ -371,59 +235,9 @@ def test_search_limits_do_not_send(router: Any) -> None:
             await client.search("ada@example.com", page=6, size=10_000)
         with pytest.raises(DehashedBadRequestError, match="regex and wildcard cannot both be true"):
             await client.search("ada@example.com", regex=True, wildcard=True)
-        with pytest.raises(DehashedBadRequestError, match="pagination limit exceeded"):
-            await client.search_through("ada@example.com", 6, size=10_000)
 
     run(call, api_key=API_KEY)
     assert len(router.calls) == 0
-
-
-def test_sequential_pages_are_sent_in_order(router: Any) -> None:
-    router.post(DEFAULT_BASE_URL + "/v2/search").mock(
-        side_effect=[
-            httpx.Response(200, json=SEARCH_BODY),
-            httpx.Response(200, json=SEARCH_BODY),
-        ]
-    )
-
-    async def call(client: DehashedClient) -> list[int]:
-        found = await client.search_through(
-            "ada@example.com",
-            2,
-            size=10_000,
-            de_dupe=True,
-        )
-        return [item.data.total for item in found]
-
-    assert run(call, api_key=API_KEY) == [1, 1]
-    assert json.loads(router.calls[0].request.content)["page"] == 1
-    assert json.loads(router.calls[1].request.content)["page"] == 2
-    assert json.loads(router.calls[0].request.content)["size"] == 10_000
-    assert json.loads(router.calls[0].request.content)["de_dupe"] is True
-
-
-def test_a_later_sequential_page_does_not_return_earlier_bodies(router: Any) -> None:
-    router.post(DEFAULT_BASE_URL + "/v2/search").mock(
-        side_effect=[
-            httpx.Response(200, json=SEARCH_BODY),
-            httpx.Response(
-                400,
-                json={
-                    "error": (
-                        "deep pagination error: pages must be fetched sequentially - "
-                        "please restart from page 1"
-                    )
-                },
-            ),
-        ]
-    )
-
-    async def call(client: DehashedClient) -> None:
-        with pytest.raises(DehashedBadRequestError, match="restart from page 1"):
-            await client.search_through("ada@example.com", 2, size=10_000)
-
-    run(call, api_key=API_KEY)
-    assert len(router.calls) == 2
 
 
 @pytest.mark.parametrize(
@@ -526,13 +340,13 @@ def test_redirect_transport_and_schema_errors(router: Any) -> None:
 
     run(call, api_key=LEAK_KEY)
 
-    router.get(DEFAULT_BASE_URL + "/v2/whois/credits").mock(
+    router.post(DEFAULT_BASE_URL + "/v2/whois/search").mock(
         side_effect=httpx.ConnectError(f"down {LEAK_KEY}")
     )
 
     async def offline(client: DehashedClient) -> str:
         with pytest.raises(DehashedAPIError, match="ConnectError") as caught:
-            await client.whois_credits()
+            await client.whois("example.com")
         return str(caught.value)
 
     message = run(offline, api_key=LEAK_KEY)
@@ -591,7 +405,7 @@ def test_client_defaults_and_closed(router: Any) -> None:
         assert client._limiter.limit == DEFAULT_RATE_PER_SECOND
         await client.aclose()
         with pytest.raises(DehashedAPIError, match="closed"):
-            await client.user_info()
+            await client.whois("example.com")
 
     asyncio.run(call())
     assert len(router.calls) == 0

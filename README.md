@@ -18,7 +18,9 @@ Agents working in this repo should start at [AGENTS.md](AGENTS.md).
 ├── docs/
 │   ├── architecture.md
 │   ├── adding-a-source.md
-│   └── source-contract.md
+│   ├── mcp-conventions.md
+│   ├── snusbase-contract.md
+│   └── dehashed-contract.md
 └── osint-sources/
     ├── snusbase/
     └── dehashed/
@@ -29,7 +31,7 @@ Agents working in this repo should start at [AGENTS.md](AGENTS.md).
 | Source | Distribution | Console script | MCP tools |
 | --- | --- | --- | --- |
 | [Snusbase](osint-sources/snusbase/README.md) | `osintz-snusbase-mcp` | `snusbase-mcp` | `snusbase-search`, `snusbase-whois`, `snusbase-hash`, `snusbase-combo` |
-| [DeHashed](osint-sources/dehashed/README.md) | `osintz-dehashed-mcp` | `dehashed-mcp` | `dehashed-search` and the other `dehashed-*` tools in that README |
+| [DeHashed](osint-sources/dehashed/README.md) | `osintz-dehashed-mcp` | `dehashed-mcp` | `dehashed-search`, `dehashed-search-password`, `dehashed-data-wells`, `dehashed-whois`, `dehashed-reverse-whois`, `dehashed-subdomain-scan` |
 
 Snusbase is the reference implementation. Each HTTP client ships inside its MCP distribution. There is no separate client package. Import paths `snusbase_client` and `dehashed_client` remain so the server and the tests can call the client without starting MCP.
 

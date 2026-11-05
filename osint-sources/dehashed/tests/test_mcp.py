@@ -25,30 +25,10 @@ PASSWORD = "HorseBattery!"
 TOOL_NAMES = {
     "dehashed-search",
     "dehashed-search-password",
-    "dehashed-user",
     "dehashed-data-wells",
-    "dehashed-monitoring-create-task",
-    "dehashed-monitoring-update-task",
-    "dehashed-monitoring-set-task-active",
-    "dehashed-monitoring-delete-task",
-    "dehashed-monitoring-tasks",
-    "dehashed-monitoring-task",
-    "dehashed-monitoring-reports",
-    "dehashed-monitoring-report",
-    "dehashed-monitoring-channels",
-    "dehashed-monitoring-update-channel",
-    "dehashed-monitoring-delete-channel",
-    "dehashed-monitoring-domains",
-    "dehashed-monitoring-update-domain",
-    "dehashed-monitoring-clear-domain",
     "dehashed-whois",
-    "dehashed-whois-history",
     "dehashed-reverse-whois",
-    "dehashed-reverse-ip",
-    "dehashed-reverse-mx",
-    "dehashed-reverse-ns",
     "dehashed-subdomain-scan",
-    "dehashed-whois-credits",
 }
 
 SEARCH_BODY = {
@@ -130,7 +110,8 @@ def test_server_exposes_the_dehashed_tools(monkeypatch: pytest.MonkeyPatch) -> N
         search = tools["dehashed-search"].description.lower()
         assert "untrusted" in search
         assert "password" in search
-        assert "through_page" in search
+        assert "read-only" in search
+        assert "through_page" not in search
         assert "10000" in search or "10,000" in search
         password = tools["dehashed-search-password"].description.lower()
         assert "sha-256" in password
@@ -144,7 +125,6 @@ def test_server_exposes_the_dehashed_tools(monkeypatch: pytest.MonkeyPatch) -> N
             "wildcard",
             "regex",
             "de_dupe",
-            "through_page",
         }
         assert "password" in tools["dehashed-search-password"].input_schema["properties"]
         assert "api_key" not in tools["dehashed-search"].input_schema["properties"]
@@ -241,7 +221,7 @@ def test_data_wells_tool_works_without_a_key(router: Any) -> None:
     assert request.url.params["sort"] == "name-ASC"
 
 
-def test_pagination_and_sequential_tool(router: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pagination_is_one_page(router: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ENV_API_KEY, API_KEY)
     router.post(DEFAULT_BASE_URL + "/v2/search").mock(
         return_value=httpx.Response(200, json=SEARCH_BODY)
@@ -250,23 +230,17 @@ def test_pagination_and_sequential_tool(router: Any, monkeypatch: pytest.MonkeyP
     async def body(server: Any) -> None:
         with pytest.raises(ToolError, match="size must be between 1 and 10000"):
             await server.call_tool("dehashed-search", {"query": "ada@example.com", "size": 0})
-        with pytest.raises(ToolError, match="page or through_page"):
-            await server.call_tool(
-                "dehashed-search",
-                {"query": "ada@example.com", "page": 1, "through_page": 2},
-            )
         found = _json(
             await server.call_tool(
                 "dehashed-search",
-                {"query": "ada@example.com", "through_page": 2, "size": 10000},
+                {"query": "ada@example.com", "page": 2, "size": 10000},
             )
         )
-        assert len(found["pages"]) == 2
+        assert found["total"] == 1
 
     run(body)
-    assert len(router.calls) == 2
-    assert json.loads(router.calls[0].request.content)["page"] == 1
-    assert json.loads(router.calls[1].request.content)["page"] == 2
+    assert len(router.calls) == 1
+    assert json.loads(router.calls[0].request.content)["page"] == 2
 
 
 def test_lookup_runs_without_starting_the_server(
@@ -293,7 +267,7 @@ def test_lookup_runs_without_starting_the_server(
 def test_missing_key_tool_error_names_the_env_var(router: Any) -> None:
     async def body(server: Any) -> None:
         with pytest.raises(ToolError, match="DEHASHED_API_KEY") as caught:
-            await server.call_tool("dehashed-user", {})
+            await server.call_tool("dehashed-whois", {"domain": "example.com"})
         assert API_KEY not in str(caught.value)
 
     run(body)

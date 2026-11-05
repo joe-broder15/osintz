@@ -9,11 +9,8 @@ tool argument and never written to a log line by this package. ``repr`` and
 omitted even when a key is configured, because the docs say that call needs
 no key and no subscription.
 
-Monitoring paths are reconstructed. The export wraps those URL lines at 51
-characters and drops the remainder. The assumed path is the visible prefix
-completed from the sample function name. ``get_reports`` is the one case where
-the visible prefix (``get-t``) does not match ``get-reports``. See
-``docs/dehashed-contract.md``.
+Every path in ``OPERATIONS`` is written in full in the export. Monitoring URLs
+are truncated there, so this client does not call them.
 """
 
 import asyncio
@@ -38,31 +35,13 @@ from dehashed_client.exceptions import (
     DehashedSubscriptionError,
 )
 from dehashed_client.models import (
-    ChannelListResponse,
-    CreateTaskRequest,
     DataWellsQuery,
     DataWellsResponse,
-    DeleteChannelRequest,
-    DomainIdRequest,
-    DomainListResponse,
-    PageRequest,
     PasswordSearchRequest,
     PasswordSearchResponse,
-    ReportDetailResponse,
-    ReportListResponse,
     ReverseWhoisRequest,
     SearchRequest,
     SearchResponse,
-    SuccessResponse,
-    TaskDetailResponse,
-    TaskIdRequest,
-    TaskListResponse,
-    UpdateChannelRequest,
-    UpdateDomainRequest,
-    UpdateTaskActiveRequest,
-    UpdateTaskRequest,
-    UserInfoResponse,
-    WhoisCreditsResponse,
     WhoisDomainRequest,
     WhoisSearchResponse,
 )
@@ -75,55 +54,18 @@ AUTH_HEADER = "DeHashed-Api-Key"
 
 PATH_SEARCH = "/v2/search"
 PATH_SEARCH_PASSWORD = "/v2/search-password"
-PATH_USER = "/v2/info/user"
 PATH_DATA_WELLS = "/data-wells"
 PATH_WHOIS_SEARCH = "/v2/whois/search"
-PATH_WHOIS_CREDITS = "/v2/whois/credits"
-
-# Sample function names, after the export cut the URL. See the module docstring.
-PATH_CREATE_TASK = "/v2/monitoring/create-task"
-PATH_UPDATE_TASK = "/v2/monitoring/update-task"
-PATH_UPDATE_TASK_ACTIVE = "/v2/monitoring/update-task-active"
-PATH_DELETE_TASK = "/v2/monitoring/delete-task"
-PATH_GET_TASKS = "/v2/monitoring/get-tasks"
-PATH_GET_TASK = "/v2/monitoring/get-task"
-PATH_GET_REPORTS = "/v2/monitoring/get-reports"
-PATH_GET_REPORT = "/v2/monitoring/get-report"
-PATH_GET_CHANNELS = "/v2/monitoring/get-channels"
-PATH_UPDATE_CHANNEL = "/v2/monitoring/update-channel"
-PATH_DELETE_CHANNEL = "/v2/monitoring/delete-channel"
-PATH_GET_DOMAINS = "/v2/monitoring/get-domains"
-PATH_UPDATE_DOMAIN = "/v2/monitoring/update-domain"
-PATH_CLEAR_DOMAIN = "/v2/monitoring/clear-domain"
 
 # Public client method name -> (HTTP method, path, send the API key).
+# Each path is complete in the export. Truncated monitoring URLs are not here.
 OPERATIONS: dict[str, tuple[str, str, bool]] = {
     "search": ("POST", PATH_SEARCH, True),
     "search_password": ("POST", PATH_SEARCH_PASSWORD, True),
-    "user_info": ("POST", PATH_USER, True),
     "data_wells": ("GET", PATH_DATA_WELLS, False),
-    "create_task": ("POST", PATH_CREATE_TASK, True),
-    "update_task": ("POST", PATH_UPDATE_TASK, True),
-    "update_task_active": ("POST", PATH_UPDATE_TASK_ACTIVE, True),
-    "delete_task": ("POST", PATH_DELETE_TASK, True),
-    "get_tasks": ("POST", PATH_GET_TASKS, True),
-    "get_task": ("POST", PATH_GET_TASK, True),
-    "get_reports": ("POST", PATH_GET_REPORTS, True),
-    "get_report": ("POST", PATH_GET_REPORT, True),
-    "get_channels": ("POST", PATH_GET_CHANNELS, True),
-    "update_channel": ("POST", PATH_UPDATE_CHANNEL, True),
-    "delete_channel": ("POST", PATH_DELETE_CHANNEL, True),
-    "get_domains": ("GET", PATH_GET_DOMAINS, True),
-    "update_domain": ("POST", PATH_UPDATE_DOMAIN, True),
-    "clear_domain": ("POST", PATH_CLEAR_DOMAIN, True),
     "whois": ("POST", PATH_WHOIS_SEARCH, True),
-    "whois_history": ("POST", PATH_WHOIS_SEARCH, True),
     "reverse_whois": ("POST", PATH_WHOIS_SEARCH, True),
-    "reverse_ip": ("POST", PATH_WHOIS_SEARCH, True),
-    "reverse_mx": ("POST", PATH_WHOIS_SEARCH, True),
-    "reverse_ns": ("POST", PATH_WHOIS_SEARCH, True),
     "subdomain_scan": ("POST", PATH_WHOIS_SEARCH, True),
-    "whois_credits": ("GET", PATH_WHOIS_CREDITS, True),
 }
 
 
@@ -395,44 +337,6 @@ class DehashedClient:
             de_dupe=de_dupe,
         )
 
-    async def search_through(
-        self,
-        query: str,
-        through_page: int,
-        *,
-        size: int | None = None,
-        wildcard: bool | None = None,
-        regex: bool | None = None,
-        de_dupe: bool | None = None,
-    ) -> list[DehashedResponse[SearchResponse]]:
-        """Fetch pages 1..``through_page`` in order.
-
-        The last page is checked against the documented limits before the first
-        request. A later page's failure raises and does not return earlier pages.
-        """
-        validated_body(
-            SearchRequest,
-            query=query,
-            page=through_page,
-            size=size,
-            wildcard=wildcard,
-            regex=regex,
-            de_dupe=de_dupe,
-        )
-        pages: list[DehashedResponse[SearchResponse]] = []
-        for number in range(1, through_page + 1):
-            pages.append(
-                await self.search(
-                    query,
-                    page=number,
-                    size=size,
-                    wildcard=wildcard,
-                    regex=regex,
-                    de_dupe=de_dupe,
-                )
-            )
-        return pages
-
     async def search_password(self, password: str) -> DehashedResponse[PasswordSearchResponse]:
         """``POST /v2/search-password``. Hashes locally. The plaintext is not sent."""
         digest = hash_password(password)
@@ -449,10 +353,6 @@ class DehashedClient:
                 raise
             raise type(exc)(redacted, status_code=exc.status_code) from None
 
-    async def user_info(self) -> DehashedResponse[UserInfoResponse]:
-        """``/v2/info/user``. The endpoint line says POST. The sample says GET."""
-        return await self._json("user_info", UserInfoResponse, body=None)
-
     async def data_wells(
         self,
         *,
@@ -464,117 +364,9 @@ class DehashedClient:
         query = validated_body(DataWellsQuery, count=count, page=page, sort=sort)
         return await self._invoke("data_wells", DataWellsResponse, query=query or None)
 
-    async def create_task(self, task_type: str, value: str) -> DehashedResponse[SuccessResponse]:
-        """Create a monitoring task."""
-        return await self._json(
-            "create_task",
-            SuccessResponse,
-            CreateTaskRequest,
-            type=task_type,
-            value=value,
-        )
-
-    async def update_task(
-        self,
-        task_id: str,
-        task_type: str,
-        value: str,
-        *,
-        active: bool | None = None,
-    ) -> DehashedResponse[SuccessResponse]:
-        """Update a monitoring task."""
-        return await self._json(
-            "update_task",
-            SuccessResponse,
-            UpdateTaskRequest,
-            id=task_id,
-            type=task_type,
-            value=value,
-            active=active,
-        )
-
-    async def update_task_active(
-        self, task_id: str, active: bool
-    ) -> DehashedResponse[SuccessResponse]:
-        """Set a monitoring task active or inactive."""
-        return await self._json(
-            "update_task_active",
-            SuccessResponse,
-            UpdateTaskActiveRequest,
-            id=task_id,
-            active=active,
-        )
-
-    async def delete_task(self, task_id: str) -> DehashedResponse[SuccessResponse]:
-        """Delete a monitoring task."""
-        return await self._json("delete_task", SuccessResponse, TaskIdRequest, id=task_id)
-
-    async def get_tasks(self, *, page: int | None = None) -> DehashedResponse[TaskListResponse]:
-        """List monitoring tasks."""
-        return await self._json("get_tasks", TaskListResponse, PageRequest, page=page)
-
-    async def get_task(self, task_id: str) -> DehashedResponse[TaskDetailResponse]:
-        """Fetch one monitoring task."""
-        return await self._json("get_task", TaskDetailResponse, TaskIdRequest, id=task_id)
-
-    async def get_reports(self, *, page: int | None = None) -> DehashedResponse[ReportListResponse]:
-        """List monitoring reports."""
-        return await self._json("get_reports", ReportListResponse, PageRequest, page=page)
-
-    async def get_report(self, report_id: str) -> DehashedResponse[ReportDetailResponse]:
-        """Fetch one monitoring report."""
-        return await self._json("get_report", ReportDetailResponse, TaskIdRequest, id=report_id)
-
-    async def get_channels(self) -> DehashedResponse[ChannelListResponse]:
-        """List notification channels. The endpoint line says POST. The sample says GET."""
-        return await self._json("get_channels", ChannelListResponse, body=None)
-
-    async def update_channel(
-        self, channel_type: str, value: str
-    ) -> DehashedResponse[SuccessResponse]:
-        """Update a notification channel."""
-        return await self._json(
-            "update_channel",
-            SuccessResponse,
-            UpdateChannelRequest,
-            type=channel_type,
-            value=value,
-        )
-
-    async def delete_channel(self, channel_type: str) -> DehashedResponse[SuccessResponse]:
-        """Delete a notification channel."""
-        return await self._json(
-            "delete_channel",
-            SuccessResponse,
-            DeleteChannelRequest,
-            channel=channel_type,
-        )
-
-    async def get_domains(self) -> DehashedResponse[DomainListResponse]:
-        """List monitoring domains. ``GET`` in both the endpoint line and the sample."""
-        return await self._invoke("get_domains", DomainListResponse)
-
-    async def update_domain(self, domain_id: str, domain: str) -> DehashedResponse[SuccessResponse]:
-        """Update a monitoring domain."""
-        return await self._json(
-            "update_domain",
-            SuccessResponse,
-            UpdateDomainRequest,
-            id=domain_id,
-            domain=domain,
-        )
-
-    async def clear_domain(self, domain_id: str) -> DehashedResponse[SuccessResponse]:
-        """Clear a monitoring domain. The docs say unsubscribing is a separate page."""
-        return await self._json("clear_domain", SuccessResponse, DomainIdRequest, id=domain_id)
-
     async def whois(self, domain: str) -> DehashedResponse[WhoisSearchResponse]:
         """WHOIS search. ``search_type`` is ``whois``."""
         return await self._whois("whois", "whois", domain)
-
-    async def whois_history(self, domain: str) -> DehashedResponse[WhoisSearchResponse]:
-        """WHOIS history. The docs say this search costs 25 credits."""
-        return await self._whois("whois_history", "whois-history", domain)
 
     async def reverse_whois(
         self,
@@ -594,25 +386,9 @@ class DehashedClient:
             reverse_type=reverse_type,
         )
 
-    async def reverse_ip(self, ip_address: str) -> DehashedResponse[WhoisSearchResponse]:
-        """Reverse IP. The address is sent in the documented ``domain`` field."""
-        return await self._whois("reverse_ip", "reverse-ip", ip_address)
-
-    async def reverse_mx(self, mx_address: str) -> DehashedResponse[WhoisSearchResponse]:
-        """Reverse MX. The host is sent in ``domain``."""
-        return await self._whois("reverse_mx", "reverse-mx", mx_address)
-
-    async def reverse_ns(self, ns_address: str) -> DehashedResponse[WhoisSearchResponse]:
-        """Reverse NS. The host is sent in ``domain``."""
-        return await self._whois("reverse_ns", "reverse-ns", ns_address)
-
     async def subdomain_scan(self, domain: str) -> DehashedResponse[WhoisSearchResponse]:
         """Subdomain scan. ``search_type`` is ``subdomain-scan``."""
         return await self._whois("subdomain_scan", "subdomain-scan", domain)
-
-    async def whois_credits(self) -> DehashedResponse[WhoisCreditsResponse]:
-        """``GET /v2/whois/credits``."""
-        return await self._invoke("whois_credits", WhoisCreditsResponse)
 
     async def _whois(
         self,

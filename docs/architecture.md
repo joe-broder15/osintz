@@ -12,6 +12,8 @@ Dependencies point down. Source primitives do not import MCP. Tool logic is call
 
 The MCP tools are the public interface. The client modules are an implementation detail: they are not a supported public Python API and they are not a second published distribution. They still have to be inside the MCP wheel and the Nix package, because the server imports them.
 
+Shared rules are in [mcp-conventions.md](mcp-conventions.md). Snusbase specifics are in [snusbase-contract.md](snusbase-contract.md). DeHashed specifics are in [dehashed-contract.md](dehashed-contract.md).
+
 ## Repository
 
 ```text
@@ -21,7 +23,7 @@ The MCP tools are the public interface. The client modules are an implementation
 ├── pyproject.toml          virtual root (tool.uv.package = false)
 ├── uv.lock                 one lockfile for the workspace
 ├── flake.nix               uv2nix packages and checks
-├── docs/
+├── docs/                   mcp-conventions.md, plus one contract per source
 └── osint-sources/
     ├── snusbase/
     │   ├── pyproject.toml      distribution osintz-snusbase-mcp

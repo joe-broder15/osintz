@@ -6,7 +6,6 @@ from pydantic import ValidationError
 from dehashed_client.models import (
     SEARCH_DEFAULT_PAGE,
     SEARCH_DEFAULT_SIZE,
-    ChannelListResponse,
     DataWellsQuery,
     ReverseWhoisRequest,
     SearchEntry,
@@ -71,10 +70,6 @@ def test_whois_response_has_no_required_fields() -> None:
     assert WhoisSearchResponse.model_validate({}).model_dump() == {}
     kept = WhoisSearchResponse.model_validate({"domain": "example.com", "raw": [1]})
     assert kept.model_dump()["raw"] == [1]
-
-
-def test_empty_channel_object_means_no_channels() -> None:
-    assert ChannelListResponse.model_validate({}).channels == []
 
 
 def test_data_well_sort_and_count() -> None:
