@@ -1,7 +1,8 @@
-"""Typed client for the documented Snusbase HTTP API.
+"""HTTP client for the documented Snusbase API.
 
-This package is the HTTP layer. An MCP server can be added later beside it
-(``src/snusbase_mcp``); it is not part of this package.
+Used by ``snusbase_mcp``. This package does not import the MCP stack, so these
+calls can run without starting a server. It ships inside the
+``osintz-snusbase-mcp`` distribution; it is not its own distribution.
 """
 
 from snusbase_client.client import (

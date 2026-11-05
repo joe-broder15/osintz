@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ from snusbase_client import (
     SnusbaseAuthError,
     SnusbaseBadRequestError,
     SnusbaseClient,
+    SnusbaseError,
     SnusbaseRateLimitError,
     __version__,
 )
@@ -82,7 +84,7 @@ SUCCESS_BODIES: dict[str, dict[str, Any]] = {
     },
 }
 
-EXPECTED_MODEL = {
+EXPECTED_MODEL: dict[str, type[Any]] = {
     "stats": StatsResponse,
     "search": SearchResponse,
     "count": CountResponse,
@@ -121,7 +123,7 @@ async def _call(client: SnusbaseClient, name: str) -> Any:
     raise AssertionError(name)
 
 
-def run[T](callback: Any, /, *args: Any, **kwargs: Any) -> T:
+def run[T](callback: Callable[[SnusbaseClient], Awaitable[T]], /, *args: Any, **kwargs: Any) -> T:
     async def _go() -> T:
         async with SnusbaseClient(*args, **kwargs) as client:
             return await callback(client)
@@ -205,7 +207,7 @@ def test_documented_error_statuses(
     router: Any,
     name: str,
     status: int,
-    exc_type: type[Exception],
+    exc_type: type[SnusbaseError],
 ) -> None:
     headers = {
         "X-Rate-Limit": "256",
@@ -680,7 +682,8 @@ def test_package_version_matches_pyproject() -> None:
         "project"
     ]
     assert project["version"] == __version__
-    assert project["name"] == "snusbase-client"
+    assert project["name"] == "osintz-snusbase-mcp"
+    assert project["scripts"]["snusbase-mcp"] == "snusbase_mcp.server:main"
 
 
 def test_parse_rate_limit_is_case_insensitive() -> None:

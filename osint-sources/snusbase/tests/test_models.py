@@ -32,7 +32,9 @@ from snusbase_client.models import (
     "model",
     [SearchResponse, ComboLookupResponse, HashLookupResponse],
 )
-def test_breach_responses_accept_grouped_rows_and_a_flat_list(model: type) -> None:
+def test_breach_responses_accept_grouped_rows_and_a_flat_list[
+    RowModel: (SearchResponse, ComboLookupResponse, HashLookupResponse),
+](model: type[RowModel]) -> None:
     grouped = model.model_validate(
         {
             "took": 1,
@@ -44,8 +46,13 @@ def test_breach_responses_accept_grouped_rows_and_a_flat_list(model: type) -> No
             "future_field": True,
         }
     )
-    assert grouped.results["example.com"][0]["extra_col"] == "kept"
-    assert grouped.results["NO_EMAIL"][0]["password"] == "secret"
+    assert isinstance(grouped.results, dict)
+    example = grouped.results["example.com"]
+    missing = grouped.results["NO_EMAIL"]
+    assert isinstance(example, list)
+    assert isinstance(missing, list)
+    assert example[0]["extra_col"] == "kept"
+    assert missing[0]["password"] == "secret"
     assert grouped.model_dump()["future_field"] is True
 
     flat = model.model_validate({"took": 1.0, "size": 1, "results": [{"email": "ada@example.com"}]})
@@ -75,7 +82,9 @@ def test_ip_whois_keeps_raw_rows() -> None:
             },
         }
     )
+    assert isinstance(parsed.results, dict)
     record = parsed.results["12.34.56.78"]
+    assert isinstance(record, dict)
     assert record["as"] == "AS7018 AT&T Enterprises, LLC"
     assert record["lat"] == 39.9612
     assert record["mobile"] is False
@@ -90,7 +99,10 @@ def test_ip_whois_keeps_raw_rows() -> None:
             },
         }
     )
-    assert grouped.results["NO_COUNTRY"][0] == {}
+    assert isinstance(grouped.results, dict)
+    missing_country = grouped.results["NO_COUNTRY"]
+    assert isinstance(missing_country, list)
+    assert missing_country[0] == {}
 
     flat = IpWhoisResponse.model_validate({"took": 1, "size": 1, "results": [{"query": "1.2.3.4"}]})
     assert flat.results == [{"query": "1.2.3.4"}]
@@ -130,7 +142,9 @@ def test_domain_whois_keeps_raw_rows_and_errors() -> None:
             "errors": ["missing.test: Likely not registered"],
         }
     )
+    assert isinstance(parsed.results, dict)
     record = parsed.results["example.org"]
+    assert isinstance(record, dict)
     assert record["contact"]["abuse"]["email"] == "abuse@example.org"
     assert record["registrant"] == {"org": "Example"}
     assert record["meta"]["source"] == "rdap"
@@ -146,7 +160,10 @@ def test_domain_whois_keeps_raw_rows_and_errors() -> None:
     grouped = DomainWhoisResponse.model_validate(
         {"took": 1, "size": 1, "results": {"org": [{"tld": "org"}]}}
     )
-    assert grouped.results["org"][0]["tld"] == "org"
+    assert isinstance(grouped.results, dict)
+    orgs = grouped.results["org"]
+    assert isinstance(orgs, list)
+    assert orgs[0]["tld"] == "org"
     flat = DomainWhoisResponse.model_validate(
         {"took": 1, "size": 1, "results": [{"domain": "example.org"}]}
     )

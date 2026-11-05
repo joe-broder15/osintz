@@ -1,5 +1,5 @@
 {
-  description = "Typed Python client for the documented Snusbase API";
+  description = "osintz-mcps: independently installable OSINT MCP servers";
 
   # Pinned to nixos-unstable rev 3ec636362e1816bc2f0888fa0fa2c69f1bc9e504.
   # A branch URL needs the GitHub commits API; this rev is fetched as a tarball.
@@ -69,6 +69,16 @@
               pyprojectOverrides
             ]
           );
+
+      # Runtime closure for the Snusbase stdio server. Dev groups stay out.
+      snusbaseRuntime = {
+        osintz-snusbase-mcp = [ ];
+      };
+
+      # Same package plus the lockfile's `dev` group (pytest, ruff, ty, respx).
+      snusbaseCheck = {
+        osintz-snusbase-mcp = [ "dev" ];
+      };
     in
     {
       # Impure uv shell: `uv run` syncs from uv.lock. Keeps UV_PYTHON_DOWNLOADS=never
@@ -95,36 +105,46 @@
         }
       );
 
+      # `nix build` installs osintz-snusbase-mcp with bin/snusbase-mcp (stdio).
       packages = eachSystem (
         system:
         let
           pythonSet = mkPythonSet system;
+          server = pythonSet.mkVirtualEnv "osintz-snusbase-mcp" snusbaseRuntime;
         in
         {
-          default = pythonSet."snusbase-client";
+          default = server;
+          osintz-snusbase-mcp = server;
         }
       );
 
-      # Lockfile-faithful checks: pytest and ruff come from the uv.lock virtualenv
-      # (workspace + dependency group `dev`), not from nixpkgs Python packages.
+      # Lockfile-faithful checks for this package. pytest, ruff, and ty come
+      # from the uv.lock virtualenv, not from nixpkgs Python packages.
       checks = eachSystem (
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
           pythonSet = mkPythonSet system;
-          # Project + default deps + dependency groups (includes `dev`: pytest, ruff, …).
-          checkEnv = pythonSet.mkVirtualEnv "snusbase-client-check-env" workspace.deps.groups;
+          checkEnv = pythonSet.mkVirtualEnv "osintz-snusbase-mcp-check-env" snusbaseCheck;
+          source = ./osint-sources/snusbase;
         in
         {
-          ruff = pkgs.runCommand "snusbase-client-ruff" { nativeBuildInputs = [ checkEnv ]; } ''
-            cd ${./.}
+          ruff = pkgs.runCommand "osintz-snusbase-mcp-ruff" { nativeBuildInputs = [ checkEnv ]; } ''
+            cd ${source}
             ruff check --no-cache src tests
             ruff format --check --no-cache src tests
             touch $out
           '';
 
+          ty = pkgs.runCommand "osintz-snusbase-mcp-ty" { nativeBuildInputs = [ checkEnv ]; } ''
+            cd ${source}
+            export XDG_CACHE_HOME=$(mktemp -d)
+            ty check
+            touch $out
+          '';
+
           pytest =
-            pkgs.runCommand "snusbase-client-pytest"
+            pkgs.runCommand "osintz-snusbase-mcp-pytest"
               {
                 nativeBuildInputs = [
                   checkEnv
@@ -137,9 +157,10 @@
                 # loads it when a client is constructed, including under respx.
                 export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 export NIX_SSL_CERT_FILE="$SSL_CERT_FILE"
+                # The whole tree: test_agent_contract.py walks up to the repo root.
                 cp -a ${./.} src-tree
                 chmod -R u+w src-tree
-                cd src-tree
+                cd src-tree/osint-sources/snusbase
                 export PYTHONDONTWRITEBYTECODE=1
                 # Import the installed package from checkEnv (not PYTHONPATH=src).
                 pytest -q -p no:cacheprovider

@@ -1,10 +1,13 @@
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 CI_PATH = ROOT / ".github" / "workflows" / "ci.yml"
-PROJECT_PATH = ROOT / "pyproject.toml"
 AGENTS_PATH = ROOT / "AGENTS.md"
+PYPROJECTS = [
+    ROOT / "pyproject.toml",
+    ROOT / "osint-sources" / "snusbase" / "pyproject.toml",
+]
 
 _REQUIRES_PYTHON = re.compile(r'(?m)^requires-python\s*=\s*"([^"]+)"')
 
@@ -26,6 +29,22 @@ def test_agents_md_quotes_every_ci_run_step() -> None:
 
 
 def test_agents_md_quotes_requires_python() -> None:
-    match = _REQUIRES_PYTHON.search(PROJECT_PATH.read_text())
-    assert match is not None, "pyproject.toml has no requires-python"
-    assert match.group(1) in _agents_text()
+    agents = _agents_text()
+    found = False
+    for path in PYPROJECTS:
+        match = _REQUIRES_PYTHON.search(path.read_text())
+        assert match is not None, path
+        assert match.group(1) in agents
+        found = True
+    assert found
+
+
+def test_agents_md_points_at_the_source_docs() -> None:
+    text = _agents_text()
+    for path in (
+        "docs/architecture.md",
+        "docs/adding-a-source.md",
+        "docs/source-contract.md",
+    ):
+        assert path in text
+        assert (ROOT / path).is_file()
