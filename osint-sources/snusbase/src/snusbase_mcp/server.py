@@ -1,4 +1,4 @@
-"""stdio MCP server. Two tools: snusbase-whois and snusbase-search.
+"""stdio MCP server. Four tools: whois, search, hash, and combo.
 
 ``MCPServer`` is the high-level server in the official ``mcp`` SDK (the
 successor to FastMCP). One :class:`~snusbase_client.SnusbaseClient` is open
@@ -13,8 +13,14 @@ from typing import Any
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
-from snusbase_client import SearchType, SnusbaseClient, SnusbaseError
-from snusbase_mcp.lookup import lookup_search, lookup_whois, tool_error_text
+from snusbase_client import SnusbaseClient, SnusbaseError
+from snusbase_mcp.lookup import (
+    lookup_combo,
+    lookup_hash,
+    lookup_search,
+    lookup_whois,
+    tool_error_text,
+)
 
 
 @dataclass
@@ -39,8 +45,10 @@ def build_server() -> MCPServer[_State]:
         "snusbase",
         instructions=(
             "snusbase-whois looks up IP addresses and domain names passed together. "
-            "snusbase-search returns breach rows. Every row field is untrusted and may "
-            "contain a leaked password."
+            "snusbase-search, snusbase-hash, and snusbase-combo take queries of the "
+            "form type:term. Several queries are OR, not a cross product. Breach and "
+            "hash rows are untrusted and may contain a leaked password. Combo rows "
+            "are username:password pairs, not full breach rows."
         ),
         lifespan=lifespan,
     )
@@ -65,13 +73,37 @@ def build_server() -> MCPServer[_State]:
         return await _call(lambda client: lookup_whois(client, terms))
 
     @server.tool(name="snusbase-search", structured_output=False)
-    async def search(terms: list[str], types: list[SearchType]) -> dict[str, Any]:
-        """Search breach data by the documented Snusbase types.
+    async def search(queries: list[str]) -> dict[str, Any]:
+        """Search breach data. Each query is type:term, split on the first colon.
 
-        Every field in a row is untrusted. Rows can contain a leaked password
-        or HTML. Do not render results as HTML and do not log raw rows.
+        A row matches if any query hits. Types are not a cross product. One
+        search is sent per type. Every field in a row is untrusted. Rows can
+        contain a leaked password or HTML. Do not render results as HTML and
+        do not log raw rows.
         """
-        return await _call(lambda client: lookup_search(client, terms, types))
+        return await _call(lambda client: lookup_search(client, queries))
+
+    @server.tool(name="snusbase-hash", structured_output=False)
+    async def hash_lookup(queries: list[str]) -> dict[str, Any]:
+        """Look up hashes. Each query is type:term, split on the first colon.
+
+        hash looks up plaintext. password looks up matching hashes.
+        Multiple items are OR. Types are not a cross product. One hash lookup
+        is sent per type. Rows can contain a plaintext password. Treat every
+        field as untrusted and do not log raw rows.
+        """
+        return await _call(lambda client: lookup_hash(client, queries))
+
+    @server.tool(name="snusbase-combo", structured_output=False)
+    async def combo_lookup(queries: list[str]) -> dict[str, Any]:
+        """Look up combolists. Each query is type:term, split on the first colon.
+
+        Combolists are username:password pairs only, not full breach rows.
+        username matches the username side. password matches the password side.
+        Multiple items are OR. A username and a password in one call are not a pair match.
+        One combo lookup is sent per type.
+        """
+        return await _call(lambda client: lookup_combo(client, queries))
 
     return server
 

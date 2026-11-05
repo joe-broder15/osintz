@@ -3,7 +3,7 @@
 Breach, combo, hash, and WHOIS rows are plain dicts. Columns vary, and the
 docs do not say which keys are always present. Request models omit optional
 fields that are ``None`` so the server can apply its own defaults (``group_by``
-of ``"db"`` on search, combo, and hash; ``include_results`` of true on count).
+of ``"db"`` on search, combo, and hash).
 """
 
 from enum import StrEnum
@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class SearchType(StrEnum):
-    """``types`` values for ``POST /data/search`` and ``POST /data/count``.
+    """``types`` values for ``POST /data/search``.
 
     ``SearchType.DOMAIN`` is the wire value ``_domain``.
     """
@@ -70,18 +70,6 @@ class SearchRequest(BaseModel):
     tables: list[str] | None = None
 
 
-class CountRequest(BaseModel):
-    """Body of ``POST /data/count``. No ``group_by`` parameter is documented."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    terms: list[str]
-    types: list[SearchType]
-    wildcard: bool | None = None
-    tables: list[str] | None = None
-    include_results: bool | None = None
-
-
 class ComboLookupRequest(BaseModel):
     """Body of ``POST /tools/combo-lookup``."""
 
@@ -131,8 +119,7 @@ class RateLimit(BaseModel):
     - ``X-Rate-Limit-Remaining`` -> ``remaining``
     - ``X-Rate-Limit-Reset`` -> ``reset_seconds`` (seconds until the window resets)
 
-    Missing or non-integer header values are ``None``. ``GET /data/stats`` is
-    unauthenticated, so these are typically absent on that call.
+    Missing or non-integer header values are ``None``.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -180,35 +167,6 @@ class HashLookupResponse(_Envelope):
     """Body of ``POST /tools/hash-lookup``. Rows can contain plaintext passwords."""
 
     results: GroupedRows
-
-
-class CountResponse(_Envelope):
-    """Body of ``POST /data/count``.
-
-    ``results`` maps table name to a count. It is absent when ``include_results``
-    is false.
-    """
-
-    results: dict[str, int] | None = None
-
-
-class StatsFeatures(BaseModel):
-    """``features`` object on ``GET /data/stats``."""
-
-    model_config = ConfigDict(extra="allow")
-
-    view_more: list[str]
-    combo_lookup: list[str]
-
-
-class StatsResponse(BaseModel):
-    """Body of ``GET /data/stats``."""
-
-    model_config = ConfigDict(extra="allow")
-
-    rows: int
-    tables: dict[str, list[str]]
-    features: StatsFeatures
 
 
 class IpWhoisResponse(_Envelope):
