@@ -680,7 +680,8 @@ def test_package_version_matches_pyproject() -> None:
         "project"
     ]
     assert project["version"] == __version__
-    assert project["name"] == "snusbase-client"
+    assert project["name"] == "osintz-snusbase-mcp"
+    assert project["scripts"]["snusbase-mcp"] == "snusbase_mcp.server:main"
 
 
 def test_parse_rate_limit_is_case_insensitive() -> None:
