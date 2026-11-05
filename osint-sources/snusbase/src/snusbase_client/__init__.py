@@ -24,7 +24,6 @@ from snusbase_client.models import (
     ComboLookupResponse,
     ComboLookupType,
     ComboLookupTypeName,
-    CountResponse,
     DomainWhoisResponse,
     HashLookupResponse,
     HashLookupType,
@@ -34,7 +33,6 @@ from snusbase_client.models import (
     SearchResponse,
     SearchType,
     SearchTypeName,
-    StatsResponse,
 )
 
 __version__ = "0.1.0"
@@ -46,7 +44,6 @@ __all__ = [
     "ComboLookupResponse",
     "ComboLookupType",
     "ComboLookupTypeName",
-    "CountResponse",
     "DomainWhoisResponse",
     "HashLookupResponse",
     "HashLookupType",
@@ -63,7 +60,6 @@ __all__ = [
     "SnusbaseError",
     "SnusbaseRateLimitError",
     "SnusbaseResponse",
-    "StatsResponse",
     "__version__",
     "parse_rate_limit",
 ]
