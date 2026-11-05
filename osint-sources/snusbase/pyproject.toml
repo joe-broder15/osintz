@@ -32,6 +32,7 @@ Documentation = "https://docs.snusbase.com/"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.13",
     "pytest>=8",
     "respx>=0.21",
     "ruff>=0.8",
@@ -47,6 +48,16 @@ packages = ["src/snusbase_client", "src/snusbase_mcp"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+files = ["src", "tests"]
+plugins = ["pydantic.mypy"]
+pretty = true
+show_error_codes = true
+warn_unused_ignores = true
+warn_redundant_casts = true
 
 [tool.ruff]
 target-version = "py312"

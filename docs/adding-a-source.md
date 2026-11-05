@@ -12,7 +12,7 @@ There is no generator. Copy the shape of `osint-sources/snusbase/`, then delete 
 4. Implement source primitives with no MCP import. Keep them callable without a server.
 5. Implement tool logic and a stdio MCP server. Register only the named tools. Translate primitive failures into MCP errors. Do not take secrets as tool arguments.
 6. Test with mocked externals: primitive behavior, tool behavior, and MCP registration, invocation, and error translation. No live calls and no secrets in the tree.
-7. Run `uv lock` at the repo root. Point `nix flake check` at that member's lockfile deps the same way Snusbase is wired in `flake.nix` (uv2nix virtualenv, `dev` group, Ruff, pytest). Add a `packages` output for the stdio script. Do not fall back to nixpkgs Python packages for the check.
+7. Run `uv lock` at the repo root. Point `nix flake check` at that member's lockfile deps the same way Snusbase is wired in `flake.nix` (uv2nix virtualenv, `dev` group, Ruff, mypy, pytest). Add a `packages` output for the stdio script. Do not fall back to nixpkgs Python packages for the check.
 8. Document human testing in the source README: env var names, exact commands, representative inputs, cost and side effects, and what is still unverified.
 
 ## What Snusbase shows

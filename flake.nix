@@ -75,7 +75,7 @@
         osintz-snusbase-mcp = [ ];
       };
 
-      # Same package plus the lockfile's `dev` group (pytest, ruff, respx).
+      # Same package plus the lockfile's `dev` group (pytest, ruff, mypy, respx).
       snusbaseCheck = {
         osintz-snusbase-mcp = [ "dev" ];
       };
@@ -118,8 +118,8 @@
         }
       );
 
-      # Lockfile-faithful checks for this package. pytest and ruff come from the
-      # uv.lock virtualenv, not from nixpkgs Python packages.
+      # Lockfile-faithful checks for this package. pytest, ruff, and mypy come
+      # from the uv.lock virtualenv, not from nixpkgs Python packages.
       checks = eachSystem (
         system:
         let
@@ -133,6 +133,14 @@
             cd ${source}
             ruff check --no-cache src tests
             ruff format --check --no-cache src tests
+            touch $out
+          '';
+
+          mypy = pkgs.runCommand "osintz-snusbase-mcp-mypy" { nativeBuildInputs = [ checkEnv ]; } ''
+            cd ${source}
+            # The source tree is read-only. Keep mypy's cache in a writable dir.
+            export MYPY_CACHE_DIR=$(mktemp -d)
+            mypy --no-incremental
             touch $out
           '';
 

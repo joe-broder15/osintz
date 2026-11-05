@@ -6,6 +6,7 @@ import importlib.metadata
 import inspect
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +31,7 @@ RATE_HEADERS = {
 }
 
 
-def run[T](body: Any) -> T:
+def run[T](body: Callable[[Any], Awaitable[T]]) -> T:
     async def _go() -> T:
         server = build_server()
         lifespan = server.settings.lifespan

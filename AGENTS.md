@@ -19,12 +19,13 @@ nix flake check -L
 
 `osint-sources/snusbase/tests/test_agent_contract.py` fails if this file drops that command, the `requires-python` value, or the doc links above.
 
-`nix flake check` runs `ruff check`, `ruff format --check`, and pytest from the `uv.lock` environment for `osintz-snusbase-mcp`, on Python 3.12. On a machine without Nix, this stand-in uses the same lockfile. It is not the CI command.
+`nix flake check` runs `ruff check`, `ruff format --check`, mypy, and pytest from the `uv.lock` environment for `osintz-snusbase-mcp`, on Python 3.12. On a machine without Nix, this stand-in uses the same lockfile. It is not the CI command.
 
 ```bash
 uv sync --frozen --package osintz-snusbase-mcp --group dev
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ruff check
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ruff format --check
+uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase mypy --no-incremental
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase pytest
 ```
 
