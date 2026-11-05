@@ -17,7 +17,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from dehashed_client import DehashedClient
 from dehashed_client.client import AUTH_HEADER, DEFAULT_BASE_URL, ENV_API_KEY
 from dehashed_mcp.lookup import lookup_search
-from dehashed_mcp.server import build_server, main, parse_args
+from dehashed_mcp.server import build_server, main
 
 API_KEY = "test-key-not-a-secret"
 PASSWORD = "HorseBattery!"
@@ -91,7 +91,7 @@ def test_mcp_sources_do_not_import_snusbase() -> None:
                 assert not module.startswith("snusbase")
 
 
-def test_distribution_ships_both_transports() -> None:
+def test_distribution_ships_the_stdio_entry_point() -> None:
     dist = importlib.metadata.metadata("osintz-dehashed-mcp")
     assert dist["Name"] == "osintz-dehashed-mcp"
     assert dist["Version"] == "0.1.0"
@@ -99,12 +99,17 @@ def test_distribution_ships_both_transports() -> None:
     assert scripts["dehashed-mcp"] == "dehashed_mcp.server:main"
     source = inspect.getsource(main)
     assert 'transport="stdio"' in source
-    assert 'transport="streamable-http"' in source
+    assert "streamable-http" not in source
     pyproject = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text()
     assert "snusbase" not in pyproject
+    server_source = (
+        Path(__file__).resolve().parents[1] / "src" / "dehashed_mcp" / "server.py"
+    ).read_text()
+    assert "streamable-http" not in server_source
+    assert "DEHASHED_MCP_HOST" not in server_source
 
 
-def test_stdio_is_the_default_and_http_binds_loopback(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_is_stdio_only(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: dict[str, Any] = {}
 
     def fake_run(self: Any, transport: str = "stdio", **kwargs: Any) -> None:
@@ -112,27 +117,8 @@ def test_stdio_is_the_default_and_http_binds_loopback(monkeypatch: pytest.Monkey
         seen["kwargs"] = kwargs
 
     monkeypatch.setattr("dehashed_mcp.server.MCPServer.run", fake_run)
-    main([])
+    main()
     assert seen == {"transport": "stdio", "kwargs": {}}
-    main(["stdio"])
-    assert seen["transport"] == "stdio"
-    main(["http"])
-    assert seen["transport"] == "streamable-http"
-    assert seen["kwargs"] == {"host": "127.0.0.1", "port": 8000}
-    monkeypatch.setenv("DEHASHED_MCP_HOST", "localhost")
-    monkeypatch.setenv("DEHASHED_MCP_PORT", "9001")
-    main(["http"])
-    assert seen["kwargs"] == {"host": "localhost", "port": 9001}
-    main(["http", "--host", "127.0.0.1", "--port", "9002"])
-    assert seen["kwargs"] == {"host": "127.0.0.1", "port": 9002}
-    with pytest.raises(SystemExit):
-        main(["sse"])
-
-
-def test_bad_http_port_env_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("DEHASHED_MCP_PORT", "nope")
-    with pytest.raises(SystemExit):
-        parse_args(["http"])
 
 
 def test_server_exposes_the_dehashed_tools(monkeypatch: pytest.MonkeyPatch) -> None:

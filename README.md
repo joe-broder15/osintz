@@ -1,6 +1,6 @@
 # osintz-mcps
 
-Independently installable OSINT MCP servers. Each source is a uv workspace member under `osint-sources/`, built as its own distribution and as a Nix package. The host supplies credentials in the environment. Snusbase is stdio only. DeHashed also serves streamable HTTP. There is no NixOS module.
+Independently installable OSINT MCP servers. Each source is a uv workspace member under `osint-sources/`, built as its own distribution and as a Nix package. The host launches the server over stdio and supplies credentials in the environment. There is no HTTP transport and no NixOS module.
 
 Python is 3.12 only (`>=3.12,<3.13`). Dependencies are locked in the root `uv.lock`. `nix flake check` runs Ruff, ty, and pytest for each package from that lockfile through uv2nix.
 

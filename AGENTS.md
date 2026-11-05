@@ -1,6 +1,6 @@
 # osintz-mcps
 
-Monorepo of independently installable OSINT MCP servers. One uv workspace member and one MCP distribution per source. Snusbase is the reference and is stdio only. DeHashed also serves streamable HTTP. Do not add a source, a tool, an endpoint, or a response field unless a human specified it.
+Monorepo of independently installable OSINT MCP servers. One uv workspace member and one stdio MCP distribution per source. Snusbase is the reference. Do not add a source, a tool, an endpoint, or a response field unless a human specified it.
 
 Read these before changing code:
 

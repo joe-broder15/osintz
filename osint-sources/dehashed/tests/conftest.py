@@ -9,8 +9,6 @@ from dehashed_client.client import ENV_API_KEY
 @pytest.fixture(autouse=True)
 def _no_ambient_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(ENV_API_KEY, raising=False)
-    monkeypatch.delenv("DEHASHED_MCP_HOST", raising=False)
-    monkeypatch.delenv("DEHASHED_MCP_PORT", raising=False)
 
 
 @pytest.fixture

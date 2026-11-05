@@ -1,11 +1,10 @@
-"""MCP server for DeHashed. stdio by default, streamable HTTP when asked.
+"""stdio MCP server for DeHashed.
 
 One :class:`~dehashed_client.DehashedClient` is open for the life of the
-process. The key comes from ``DEHASHED_API_KEY`` at construction.
+process. The key comes from ``DEHASHED_API_KEY`` at construction. The console
+script speaks MCP on stdio only.
 """
 
-import argparse
-import os
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -44,11 +43,6 @@ from dehashed_mcp.lookup import (
     lookup_whois_history,
     tool_error_text,
 )
-
-DEFAULT_HTTP_HOST = "127.0.0.1"
-DEFAULT_HTTP_PORT = 8000
-ENV_HTTP_HOST = "DEHASHED_MCP_HOST"
-ENV_HTTP_PORT = "DEHASHED_MCP_PORT"
 
 
 @dataclass
@@ -360,33 +354,5 @@ def build_server() -> MCPServer[_State]:
     return server
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """stdio is the default. ``http`` is streamable HTTP on loopback port 8000."""
-    parser = argparse.ArgumentParser(prog="dehashed-mcp")
-    sub = parser.add_subparsers(dest="transport")
-    sub.add_parser("stdio", help="Speak MCP on stdin and stdout.")
-    http = sub.add_parser("http", help="Serve streamable HTTP MCP.")
-    http.add_argument("--host", default=None)
-    http.add_argument("--port", type=int, default=None)
-    args = parser.parse_args(argv)
-    if args.transport is None:
-        args.transport = "stdio"
-    if args.transport == "http":
-        if args.host is None:
-            args.host = os.environ.get(ENV_HTTP_HOST, DEFAULT_HTTP_HOST)
-        if args.port is None:
-            raw = os.environ.get(ENV_HTTP_PORT, str(DEFAULT_HTTP_PORT))
-            try:
-                args.port = int(raw)
-            except ValueError:
-                parser.error(f"{ENV_HTTP_PORT} must be an integer.")
-    return args
-
-
-def main(argv: list[str] | None = None) -> None:
-    args = parse_args(argv)
-    server = build_server()
-    if args.transport == "http":
-        server.run(transport="streamable-http", host=args.host, port=args.port)
-        return
-    server.run(transport="stdio")
+def main() -> None:
+    build_server().run(transport="stdio")

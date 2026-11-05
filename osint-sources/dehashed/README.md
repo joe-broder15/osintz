@@ -35,27 +35,16 @@ nix build .#osintz-dehashed-mcp
 
 `nix build` does not embed an API key. The default `nix build` in this repo is still the Snusbase server.
 
-## Transports
+## MCP server
 
-stdio:
+`dehashed-mcp` speaks MCP over stdio only. There is no HTTP listener.
 
 ```bash
 export DEHASHED_API_KEY='your-key'
 uv run --package osintz-dehashed-mcp dehashed-mcp
 ```
 
-`dehashed-mcp stdio` is the same. The process waits on stdin.
-
-Streamable HTTP, loopback only, path `/mcp`:
-
-```bash
-export DEHASHED_API_KEY='your-key'
-uv run --package osintz-dehashed-mcp dehashed-mcp http
-```
-
-That listens on `127.0.0.1:8000`. Override the bind with `--host` and `--port`, or with `DEHASHED_MCP_HOST` and `DEHASHED_MCP_PORT`. A flag wins over the environment variable. This default does not listen on a public interface. Pick a host only if you intend to expose the server. The API key stays in the server environment. It is not part of the MCP URL.
-
-Snusbase is unchanged and remains stdio only.
+The process waits on stdin. Point the MCP host at the command and pass `DEHASHED_API_KEY` on the server process.
 
 The same binary from the Nix result:
 
@@ -63,7 +52,6 @@ The same binary from the Nix result:
 nix build .#osintz-dehashed-mcp
 export DEHASHED_API_KEY='your-key'
 ./result/bin/dehashed-mcp
-./result/bin/dehashed-mcp http --port 8000
 ```
 
 The bare command waits for MCP. It does not call DeHashed until a host sends a tool call.
@@ -128,7 +116,7 @@ What this repository has not verified against `https://api.dehashed.com`:
 - Whether each search page costs a credit.
 - The WHOIS search JSON.
 - The unit string on `took` beyond the one example.
-- A host other than the official Python `mcp` client, and a streamable HTTP session against the live API.
+- A host other than the official Python `mcp` client.
 
 Offline checks, from the repo root:
 

@@ -1,7 +1,7 @@
 [project]
 name = "osintz-dehashed-mcp"
 version = "0.1.0"
-description = "MCP server for the documented DeHashed API. stdio and streamable HTTP."
+description = "stdio MCP server for the documented DeHashed API."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "MIT"

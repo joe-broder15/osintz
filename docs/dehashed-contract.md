@@ -6,6 +6,8 @@ Source of truth: a redacted export of the DeHashed API docs dated "Updated July 
 
 Tool names include `dehashed`. The key is `DEHASHED_API_KEY`, read when the process constructs `DehashedClient`. It is sent as `DeHashed-Api-Key`. It is never a tool argument. `GET /data-wells` does not send the header, even when a key is configured.
 
+The console script is stdio only. `dehashed-mcp` calls `MCPServer.run(transport="stdio")`. There is no HTTP listener.
+
 `structured_output` is false. Each tool returns a JSON object as text. Client exceptions become MCP `ToolError` text. There is no retry and no sleep after an HTTP error. The client does wait, before sending, so one process stays at or under 20 requests in any one second. That is the published limit. A 429 is still surfaced.
 
 Rows from search and from a monitoring report are untrusted. They can contain a leaked password. Do not log them and do not render them as HTML. This package does not log.
