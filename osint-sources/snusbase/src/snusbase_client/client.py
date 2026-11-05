@@ -5,10 +5,8 @@ is omitted, from the ``SNUSBASE_API_KEY`` environment variable. It is sent in
 the ``Auth`` header. It is never written to a log line by this package, and
 ``repr`` / ``str`` of the client redact it.
 
-``GET /data/stats`` does not send ``Auth``, including when a key is configured.
-The stats section of the docs shows a request with no auth header. The generic
-code samples send ``Auth`` on every call only because their helper always sets
-the header.
+Every call this client makes sends ``Auth``. ``GET /data/stats`` and
+``POST /data/count`` are not implemented.
 """
 
 from collections.abc import Mapping, Sequence
@@ -31,8 +29,6 @@ from snusbase_client.models import (
     ComboLookupResponse,
     ComboLookupType,
     ComboLookupTypeName,
-    CountRequest,
-    CountResponse,
     DomainWhoisRequest,
     DomainWhoisResponse,
     HashLookupRequest,
@@ -46,7 +42,6 @@ from snusbase_client.models import (
     SearchResponse,
     SearchType,
     SearchTypeName,
-    StatsResponse,
 )
 
 DEFAULT_BASE_URL = "https://api.snusbase.com"
@@ -54,9 +49,7 @@ DEFAULT_TIMEOUT_SECONDS = 60.0
 ENV_API_KEY = "SNUSBASE_API_KEY"
 AUTH_HEADER = "Auth"
 
-PATH_STATS = "/data/stats"
 PATH_SEARCH = "/data/search"
-PATH_COUNT = "/data/count"
 PATH_COMBO_LOOKUP = "/tools/combo-lookup"
 PATH_HASH_LOOKUP = "/tools/hash-lookup"
 PATH_IP_WHOIS = "/tools/ip-whois"
@@ -64,9 +57,7 @@ PATH_DOMAIN_WHOIS = "/tools/domain-whois"
 
 # Public client method name -> (HTTP method, path).
 OPERATIONS: dict[str, tuple[str, str]] = {
-    "stats": ("GET", PATH_STATS),
     "search": ("POST", PATH_SEARCH),
-    "count": ("POST", PATH_COUNT),
     "combo_lookup": ("POST", PATH_COMBO_LOOKUP),
     "hash_lookup": ("POST", PATH_HASH_LOOKUP),
     "ip_whois": ("POST", PATH_IP_WHOIS),
@@ -321,10 +312,6 @@ class SnusbaseClient:
     async def aclose(self) -> None:
         await self._http.aclose()
 
-    async def stats(self) -> SnusbaseResponse[StatsResponse]:
-        """``GET /data/stats``. Does not send the ``Auth`` header."""
-        return await self._call("stats", StatsResponse, None, authenticated=False)
-
     async def search(
         self,
         terms: Sequence[str],
@@ -351,34 +338,6 @@ class SnusbaseClient:
                 wildcard=wildcard,
                 group_by=group_by,
                 tables=None if tables is None else list(tables),
-            ),
-            authenticated=True,
-        )
-
-    async def count(
-        self,
-        terms: Sequence[str],
-        types: Sequence[SearchType | SearchTypeName],
-        *,
-        wildcard: bool | None = None,
-        tables: Sequence[str] | None = None,
-        include_results: bool | None = None,
-    ) -> SnusbaseResponse[CountResponse]:
-        """``POST /data/count``.
-
-        Omit ``include_results`` to use the server default ``true``. Pass
-        ``False`` to get only ``took`` and ``size``. There is no ``group_by``.
-        """
-        return await self._call(
-            "count",
-            CountResponse,
-            _payload(
-                CountRequest,
-                terms=list(terms),
-                types=list(types),
-                wildcard=wildcard,
-                tables=None if tables is None else list(tables),
-                include_results=include_results,
             ),
             authenticated=True,
         )

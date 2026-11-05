@@ -12,7 +12,6 @@ import pytest
 
 from snusbase_client import (
     ComboLookupType,
-    CountResponse,
     HashLookupType,
     SearchType,
     SnusbaseAPIError,
@@ -37,7 +36,6 @@ from snusbase_client.models import (
     HashLookupResponse,
     IpWhoisResponse,
     SearchResponse,
-    StatsResponse,
 )
 
 API_KEY = "sb" + "0" * 28
@@ -50,17 +48,11 @@ RATE_HEADERS = {
 }
 
 SUCCESS_BODIES: dict[str, dict[str, Any]] = {
-    "stats": {
-        "rows": 3,
-        "tables": {"T": ["email", "username"]},
-        "features": {"view_more": ["T"], "combo_lookup": []},
-    },
     "search": {
         "took": 1.5,
         "size": 1,
         "results": {"T": [{"email": "example@gmail.com"}]},
     },
-    "count": {"took": 1, "size": 4, "results": {"T": 4}},
     "combo_lookup": {
         "took": 1,
         "size": 1,
@@ -85,9 +77,7 @@ SUCCESS_BODIES: dict[str, dict[str, Any]] = {
 }
 
 EXPECTED_MODEL: dict[str, type[Any]] = {
-    "stats": StatsResponse,
     "search": SearchResponse,
-    "count": CountResponse,
     "combo_lookup": ComboLookupResponse,
     "hash_lookup": HashLookupResponse,
     "ip_whois": IpWhoisResponse,
@@ -97,7 +87,6 @@ EXPECTED_MODEL: dict[str, type[Any]] = {
 # Bodies produced when every optional argument is left unset.
 MINIMAL_BODIES = {
     "search": {"terms": ["example@gmail.com"], "types": ["email"]},
-    "count": {"terms": ["example@gmail.com"], "types": ["email"]},
     "combo_lookup": {"terms": ["example@gmail.com"], "types": ["username"]},
     "hash_lookup": {"terms": ["abc"], "types": ["hash"]},
     "ip_whois": {"terms": ["1.2.3.4"]},
@@ -106,12 +95,8 @@ MINIMAL_BODIES = {
 
 
 async def _call(client: SnusbaseClient, name: str) -> Any:
-    if name == "stats":
-        return await client.stats()
     if name == "search":
         return await client.search(["example@gmail.com"], [SearchType.EMAIL])
-    if name == "count":
-        return await client.count(["example@gmail.com"], [SearchType.EMAIL])
     if name == "combo_lookup":
         return await client.combo_lookup(["example@gmail.com"], [ComboLookupType.USERNAME])
     if name == "hash_lookup":
@@ -157,44 +142,21 @@ def _sent(router: Any, index: int = 0) -> Any:
 
 @pytest.mark.parametrize("name", list(OPERATIONS))
 def test_success_and_auth_header(router: Any, name: str) -> None:
-    headers = None if name == "stats" else RATE_HEADERS
-    _mock(router, name, status=200, payload=SUCCESS_BODIES[name], headers=headers)
+    _mock(router, name, status=200, payload=SUCCESS_BODIES[name], headers=RATE_HEADERS)
     result = run(lambda client: _call(client, name), api_key=API_KEY)
     assert isinstance(result.data, EXPECTED_MODEL[name])
     assert result.status_code == 200
     request = router.calls[0].request
-    if name == "stats":
-        assert "auth" not in request.headers
-        assert "content-type" not in request.headers
-        assert request.content == b""
-        assert result.rate_limit.limit is None
-        assert result.rate_limit.remaining is None
-        assert result.rate_limit.reset_seconds is None
-    else:
-        assert request.headers["Auth"] == API_KEY
-        assert request.headers["content-type"].startswith("application/json")
-        assert result.rate_limit.limit == 2048
-        assert result.rate_limit.remaining == 2047
-        assert result.rate_limit.reset_seconds == 100
+    assert request.headers["Auth"] == API_KEY
+    assert request.headers["content-type"].startswith("application/json")
+    assert result.rate_limit.limit == 2048
+    assert result.rate_limit.remaining == 2047
+    assert result.rate_limit.reset_seconds == 100
     if name == "domain_whois":
         assert result.data.errors == ["missing.test: Likely not registered"]
 
 
-def test_stats_reads_rate_limit_headers_when_present(router: Any) -> None:
-    _mock(router, "stats", status=200, payload=SUCCESS_BODIES["stats"], headers=RATE_HEADERS)
-
-    async def call(client: SnusbaseClient) -> Any:
-        return await client.stats()
-
-    result = run(call, api_key=API_KEY)
-    request = router.calls[0].request
-    assert "auth" not in request.headers
-    assert result.rate_limit.limit == 2048
-    assert result.rate_limit.remaining == 2047
-    assert result.rate_limit.reset_seconds == 100
-
-
-@pytest.mark.parametrize("name", ["search", "stats"])
+@pytest.mark.parametrize("name", ["search", "ip_whois"])
 @pytest.mark.parametrize(
     ("status", "exc_type"),
     [
@@ -235,18 +197,6 @@ def test_documented_error_statuses(
         assert err.rate_limit.reset_seconds == 3600
 
 
-def test_stats_without_a_key(router: Any) -> None:
-    _mock(router, "stats", status=200, payload=SUCCESS_BODIES["stats"])
-
-    async def call(client: SnusbaseClient) -> Any:
-        return await client.stats()
-
-    result = run(call)
-    assert result.data.rows == 3
-    assert "auth" not in router.calls[0].request.headers
-    assert len(router.calls) == 1
-
-
 def test_missing_key_does_not_send(router: Any) -> None:
     async def call(client: SnusbaseClient) -> None:
         with pytest.raises(SnusbaseAuthError, match="SNUSBASE_API_KEY"):
@@ -277,10 +227,16 @@ def test_env_key_and_constructor_override(router: Any, monkeypatch: pytest.Monke
     assert router.calls[0].request.headers["Auth"] == LEAK_KEY
 
     other = "sb" + "a" * 28
-    _mock(router, "count", status=200, payload=SUCCESS_BODIES["count"], headers=RATE_HEADERS)
+    _mock(
+        router,
+        "hash_lookup",
+        status=200,
+        payload=SUCCESS_BODIES["hash_lookup"],
+        headers=RATE_HEADERS,
+    )
 
     async def from_arg(client: SnusbaseClient) -> None:
-        await client.count(["example@gmail.com"], ["email"])
+        await client.hash_lookup(["abc"], ["hash"])
 
     run(from_arg, api_key=other)
     assert router.calls[1].request.headers["Auth"] == other
@@ -288,17 +244,13 @@ def test_env_key_and_constructor_override(router: Any, monkeypatch: pytest.Monke
 
 def test_blank_env_is_treated_as_no_key(router: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ENV_API_KEY, "   ")
-    _mock(router, "stats", status=200, payload=SUCCESS_BODIES["stats"])
 
-    async def call(client: SnusbaseClient) -> Any:
-        stats = await client.stats()
+    async def call(client: SnusbaseClient) -> None:
         with pytest.raises(SnusbaseAuthError, match="SNUSBASE_API_KEY"):
             await client.search(["ada@example.com"], [SearchType.EMAIL])
-        return stats
 
-    assert run(call).data.rows == 3
-    assert len(router.calls) == 1
-    assert "auth" not in router.calls[0].request.headers
+    run(call)
+    assert len(router.calls) == 0
 
 
 def test_key_is_not_logged(router: Any, caplog: pytest.LogCaptureFixture) -> None:
@@ -350,42 +302,11 @@ def test_search_body_and_string_types(router: Any) -> None:
     }
 
 
-@pytest.mark.parametrize("name", [name for name in OPERATIONS if name != "stats"])
+@pytest.mark.parametrize("name", list(OPERATIONS))
 def test_omitted_options_are_absent_from_the_body(router: Any, name: str) -> None:
     _mock(router, name, status=200, payload=SUCCESS_BODIES[name], headers=RATE_HEADERS)
     run(lambda client: _call(client, name), api_key=API_KEY)
     assert _sent(router) == MINIMAL_BODIES[name]
-
-
-def test_count_include_results_false_round_trip(router: Any) -> None:
-    _mock(
-        router,
-        "count",
-        status=200,
-        payload={"took": 18.591, "size": 1245},
-        headers=RATE_HEADERS,
-    )
-
-    async def call(client: SnusbaseClient) -> Any:
-        return await client.count(
-            ["example@gmail.com"],
-            [SearchType.EMAIL],
-            wildcard=False,
-            tables=["T"],
-            include_results=False,
-        )
-
-    result = run(call, api_key=API_KEY)
-    assert _sent(router) == {
-        "terms": ["example@gmail.com"],
-        "types": ["email"],
-        "wildcard": False,
-        "tables": ["T"],
-        "include_results": False,
-    }
-    assert "group_by" not in _sent(router)
-    assert result.data.results is None
-    assert result.data.size == 1245
 
 
 def test_ungrouped_search_list(router: Any) -> None:
@@ -408,7 +329,6 @@ def test_ungrouped_search_list(router: Any) -> None:
     ("method", "args"),
     [
         ("search", (["ada"], ["phone"])),
-        ("count", (["ada"], ["phone"])),
         ("combo_lookup", (["ada"], ["hash"])),
         ("hash_lookup", (["ada"], ["username"])),
     ],
@@ -544,7 +464,7 @@ def test_non_json_error_malformed_reset_and_other_status(router: Any) -> None:
 
 
 def test_error_body_shapes_and_non_json_success(router: Any) -> None:
-    _method, url = _url("count")
+    _method, url = _url("search")
     router.post(url).mock(
         side_effect=[
             httpx.Response(400, json={"errors": "nope"}),
@@ -556,13 +476,13 @@ def test_error_body_shapes_and_non_json_success(router: Any) -> None:
 
     async def call(client: SnusbaseClient) -> tuple[Any, Any, Any, Any]:
         with pytest.raises(SnusbaseBadRequestError) as one:
-            await client.count(["a@example.com"], [SearchType.EMAIL])
+            await client.search(["a@example.com"], [SearchType.EMAIL])
         with pytest.raises(SnusbaseBadRequestError) as many:
-            await client.count(["a@example.com"], [SearchType.EMAIL])
+            await client.search(["a@example.com"], [SearchType.EMAIL])
         with pytest.raises(SnusbaseAuthError) as weird:
-            await client.count(["a@example.com"], [SearchType.EMAIL])
+            await client.search(["a@example.com"], [SearchType.EMAIL])
         with pytest.raises(SnusbaseAPIError, match="JSON object") as text:
-            await client.count(["a@example.com"], [SearchType.EMAIL])
+            await client.search(["a@example.com"], [SearchType.EMAIL])
         return one, many, weird, text
 
     one, many, weird, text = run(call, api_key=API_KEY)
@@ -589,24 +509,24 @@ def test_schema_mismatch_and_connection_error(router: Any) -> None:
 
     run(mismatch, api_key=API_KEY)
 
-    router.post(_url("count")[1]).mock(side_effect=httpx.ConnectError("connection refused"))
+    router.post(_url("hash_lookup")[1]).mock(side_effect=httpx.ConnectError("connection refused"))
 
     async def offline(client: SnusbaseClient) -> str:
         with pytest.raises(SnusbaseAPIError, match="ConnectError") as caught:
-            await client.count(["a@example.com"], [SearchType.EMAIL])
+            await client.hash_lookup(["abc"], [HashLookupType.HASH])
         assert caught.value.status_code is None
         return str(caught.value)
 
     message = run(offline, api_key=LEAK_KEY)
-    assert "/data/count" in message
+    assert "/tools/hash-lookup" in message
     assert LEAK_KEY not in message
     assert "connection refused" not in message
 
 
 def test_base_url_timeout_and_close(router: Any) -> None:
     base = "http://snusbase.test"
-    router.get(f"{base}/data/stats").mock(
-        return_value=httpx.Response(200, json=SUCCESS_BODIES["stats"])
+    router.post(f"{base}/data/search").mock(
+        return_value=httpx.Response(200, json=SUCCESS_BODIES["search"], headers=RATE_HEADERS)
     )
 
     async def _go() -> None:
@@ -616,15 +536,15 @@ def test_base_url_timeout_and_close(router: Any) -> None:
         assert defaults._http.follow_redirects is False
         await defaults.aclose()
 
-        client = SnusbaseClient(base_url=base + "/", timeout=12.5)
+        client = SnusbaseClient(api_key=API_KEY, base_url=base + "/", timeout=12.5)
         async with client:
             assert client.base_url == base
             assert client.timeout == 12.5
             assert client._http.timeout == httpx.Timeout(12.5)
-            await client.stats()
+            await client.search(["example@gmail.com"], [SearchType.EMAIL])
         assert client._http.is_closed
         with pytest.raises(SnusbaseAPIError, match="closed"):
-            await client.stats()
+            await client.search(["example@gmail.com"], [SearchType.EMAIL])
         await client.aclose()
 
         closed = SnusbaseClient(api_key=API_KEY, timeout=httpx.Timeout(5.0))
@@ -632,7 +552,7 @@ def test_base_url_timeout_and_close(router: Any) -> None:
         await closed.aclose()
         assert closed._http.is_closed
         with pytest.raises(SnusbaseAPIError, match="closed"):
-            await closed.stats()
+            await closed.search(["example@gmail.com"], [SearchType.EMAIL])
         await closed.aclose()
 
         raised = SnusbaseClient()

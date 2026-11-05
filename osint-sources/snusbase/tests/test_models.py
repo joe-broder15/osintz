@@ -3,15 +3,12 @@
 from typing import get_args
 
 import pytest
-from pydantic import ValidationError
 
 from snusbase_client.models import (
     ComboLookupRequest,
     ComboLookupResponse,
     ComboLookupType,
     ComboLookupTypeName,
-    CountRequest,
-    CountResponse,
     DomainWhoisRequest,
     DomainWhoisResponse,
     HashLookupRequest,
@@ -24,7 +21,6 @@ from snusbase_client.models import (
     SearchResponse,
     SearchType,
     SearchTypeName,
-    StatsResponse,
 )
 
 
@@ -57,14 +53,6 @@ def test_breach_responses_accept_grouped_rows_and_a_flat_list[
 
     flat = model.model_validate({"took": 1.0, "size": 1, "results": [{"email": "ada@example.com"}]})
     assert flat.results == [{"email": "ada@example.com"}]
-
-
-def test_count_omits_results_when_the_field_is_absent() -> None:
-    parsed = CountResponse.model_validate({"took": 18.591, "size": 1245})
-    assert parsed.results is None
-    parsed = CountResponse.model_validate({"took": 1, "size": 0, "results": {}})
-    assert parsed.took == 1.0
-    assert parsed.results == {}
 
 
 def test_ip_whois_keeps_raw_rows() -> None:
@@ -191,24 +179,6 @@ def test_request_models_omit_unset_and_keep_false() -> None:
         "group_by": False,
         "tables": [],
     }
-    counted = CountRequest(
-        terms=["ada@example.com"],
-        types=[SearchType.EMAIL],
-        include_results=False,
-    )
-    assert counted.model_dump(mode="json", exclude_none=True) == {
-        "terms": ["ada@example.com"],
-        "types": ["email"],
-        "include_results": False,
-    }
-    assert (
-        CountRequest(
-            terms=["ada@example.com"],
-            types=[SearchType.EMAIL],
-            include_results=True,
-        ).model_dump(mode="json", exclude_none=True)["include_results"]
-        is True
-    )
     assert ComboLookupRequest(terms=["ada"], types=[ComboLookupType.USERNAME]).model_dump(
         mode="json", exclude_none=True
     ) == {"terms": ["ada"], "types": ["username"]}
@@ -241,26 +211,7 @@ def test_type_literals_match_the_enums() -> None:
     assert "phone" not in SearchType
 
 
-def test_stats_keeps_unknown_fields_and_requires_features() -> None:
-    parsed = StatsResponse.model_validate(
-        {
-            "rows": 3,
-            "tables": {"T": ["email"]},
-            "features": {"view_more": ["T"], "combo_lookup": [], "future": True},
-            "future_top": 1,
-        }
-    )
-    assert parsed.rows == 3
-    assert parsed.features.view_more == ["T"]
-    assert parsed.features.model_dump()["future"] is True
-    assert parsed.model_dump()["future_top"] == 1
-    with pytest.raises(ValidationError):
-        StatsResponse.model_validate({"rows": 1, "tables": {}})
-
-
 def test_request_models_follow_the_documented_parameters() -> None:
-    assert "group_by" not in CountRequest.model_fields
-    assert "include_results" in CountRequest.model_fields
     assert "include_results" not in SearchRequest.model_fields
     assert "group_by" in SearchRequest.model_fields
     assert "include_results" not in ComboLookupRequest.model_fields

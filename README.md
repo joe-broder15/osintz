@@ -27,7 +27,7 @@ Agents working in this repo should start at [AGENTS.md](AGENTS.md).
 
 | Source | Distribution | Console script | MCP tools |
 | --- | --- | --- | --- |
-| [Snusbase](osint-sources/snusbase/README.md) | `osintz-snusbase-mcp` | `snusbase-mcp` | `snusbase-search`, `snusbase-whois` |
+| [Snusbase](osint-sources/snusbase/README.md) | `osintz-snusbase-mcp` | `snusbase-mcp` | `snusbase-search`, `snusbase-whois`, `snusbase-hash`, `snusbase-combo` |
 
 Snusbase is the reference implementation. The HTTP client modules ship inside that distribution. They are not a separate `snusbase-client` package. Import path `snusbase_client` remains so the server and the tests can call the client without starting MCP.
 
