@@ -15,7 +15,7 @@ These rules apply to every source in this repo. A source contract names that sou
 
 - Request models reject unknown fields. Response models keep extra keys. `None` on an optional request field is left out of the JSON. `False` and an empty list are sent.
 - `follow_redirects=False`. A redirect must not carry the credential to another host. The redirect error must not include the `Location` header.
-- A secret wrapper hides the key from `str`, `repr`, and `format`. `reveal` is the only way to read it. A transport error names the exception type and is raised `from None`. Do not put an `httpx.Response` or an `httpx.Request` on the response object or on an exception.
+- A secret wrapper hides the key from `str`, `repr`, and `format`. `reveal` is the only way to read it. That wrapper, the error base (`message` and `status_code`), the blank-base-URL check, the redirect sentence, the client `repr`, and the env-var sentence live in `osintz-common`. A transport error names the exception type and is raised `from None`. Do not put an `httpx.Response` or an `httpx.Request` on the response object or on an exception. Rate-limit header parsing stays in the source that documents those headers.
 - The client does not retry. It does not sleep after HTTP 429.
 - Pre-send pacing is allowed only when that source's own docs state a numeric limit and the source contract records the pace. It is not required of every source. Snusbase does not pace. DeHashed paces at 20 requests per second before send, because the DeHashed docs reject more than 20 requests in one second and the human asked the client to respect that limit.
 

@@ -21,6 +21,7 @@ Agents working in this repo should start at [AGENTS.md](AGENTS.md).
 │   ├── mcp-conventions.md
 │   ├── snusbase-contract.md
 │   └── dehashed-contract.md
+├── osint-common/           shared helpers, not an MCP server
 └── osint-sources/
     ├── snusbase/
     └── dehashed/
