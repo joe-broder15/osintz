@@ -9,4 +9,4 @@ dependencies = []
 package = false
 
 [tool.uv.workspace]
-members = ["osint-sources/snusbase"]
+members = ["osint-common", "osint-sources/snusbase", "osint-sources/dehashed"]

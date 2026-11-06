@@ -1,10 +1,10 @@
-# Source contract
+# Snusbase contract
 
-The public interface of a source is its MCP server: tool names, descriptions, input schemas, and the results and errors those tools return. Primitive clients are internal. They must still be imported by the server, so they ship in the same distribution and the same Nix package.
+Repo-wide rules are in [mcp-conventions.md](mcp-conventions.md). This file is Snusbase only.
 
-A tool name includes the source name. Document and test purpose, inputs, outputs, failures, partial success, cost and side effects, result size, and trust. Source text is untrusted. Do not log secrets or raw sensitive rows. Secrets are environment variables or constructor arguments in tests. They are never tool arguments and never Nix expressions.
+The public interface is the MCP server: tool names, descriptions, input schemas, and the results and errors those tools return. Primitive clients are internal. They must still be imported by the server, so they ship in the same distribution and the same Nix package.
 
-Implement only the operations the named tools need. This client implements search, combo lookup, hash lookup, IP WHOIS, and domain WHOIS. It does not implement `GET /data/stats` or `POST /data/count`.
+Implement only the operations the named tools need. This client implements search, combo lookup, hash lookup, IP WHOIS, and domain WHOIS. It does not implement `GET /data/stats` or `POST /data/count`. Every tool below is **read-only**. None of them change the Snusbase account.
 
 ## Snusbase tools
 
@@ -17,6 +17,8 @@ The merged view sums `size` and sums `took`, concatenates row lists per table, a
 Rejected before HTTP: an empty list, a missing colon, an empty type, an empty term, or a type outside that tool's set.
 
 ### `snusbase-search`
+
+**Effect:** read-only.
 
 Purpose: breach search. Types are `email`, `username`, `lastip`, `password`, `hash`, `name`, and `_domain`. One `POST /data/search` per type.
 
@@ -34,6 +36,8 @@ Trust: every field is untrusted, including HTML or exploit payloads that were ai
 
 ### `snusbase-hash`
 
+**Effect:** read-only.
+
 Purpose: hash lookup. `hash` looks up plaintext. `password` looks up matching hashes. Multiple items are OR. One `POST /tools/hash-lookup` per type. No `wildcard` or `group_by`.
 
 Output, merge, and failure rules match search. Rows can contain a plaintext password.
@@ -42,6 +46,8 @@ Cost: the API docs put hash lookup in the "every other endpoint" budget of 256 r
 
 ### `snusbase-combo`
 
+**Effect:** read-only.
+
 Purpose: combolist lookup. Combolists are username:password pairs only, not full breach rows. `username` matches the username side. `password` matches the password side. Multiple items are OR. A username and a password in one call are not a pair match. One `POST /tools/combo-lookup` per type. No `wildcard` or `group_by`.
 
 Output, merge, and failure rules match search.
@@ -49,6 +55,8 @@ Output, merge, and failure rules match search.
 Cost: the API docs say combo lookup allows 4096 requests every 12 hours. One request per distinct type.
 
 ### `snusbase-whois`
+
+**Effect:** read-only.
 
 Purpose: WHOIS for IP addresses and domain names passed in one list.
 
@@ -78,7 +86,7 @@ These are the behaviors the tools rely on. `GET /data/stats` and `POST /data/cou
 - `follow_redirects=False`. A redirect must not carry `Auth` to another host. The redirect error must not include the `Location` header.
 - `_Secret` hides the activation code from `str`, `repr`, and `format`. `reveal` is the only way to read it. A transport error names the exception type and is raised `from None`. Do not put an `httpx.Response` or an `httpx.Request` on `SnusbaseResponse` or on an exception.
 - This package does not log. Do not log a row.
-- The client does not retry and does not sleep on HTTP 429.
+- The client does not retry and does not sleep on HTTP 429. It also does not pace before send. Pre-send pacing is allowed for a source only under [mcp-conventions.md](mcp-conventions.md). Snusbase does not use it.
 - `client.py` owns `OPERATIONS`, the paths, the header name, the key, and `parse_rate_limit`. `models.py` owns the request models, the response models, and the wire enums.
 - Base URL `https://api.snusbase.com`. Timeout 60 seconds, passed to httpx. There is no unauthenticated call in this client.
 
@@ -107,4 +115,4 @@ Public docs as of the mirror README blob `535876c681d42db603e3f2fe72e6f13cb4e945
 
 ## Not in this contract
 
-DeHashed, Shodan, other WHOIS providers, and certificate transparency are examples in the vision, not members of this repo. Shared runtime stays unextracted until a second real source shows what is repeated.
+DeHashed is the second member. Its contract is [dehashed-contract.md](dehashed-contract.md). Shared rules are in [mcp-conventions.md](mcp-conventions.md). Shodan, other WHOIS providers, and certificate transparency are examples in the vision, not members of this repo. `osintz-common` holds only the helpers both clients already repeated. Snusbase still owns its `errors` list, rate-limit headers, and `reset_seconds`. Source packages do not depend on each other.

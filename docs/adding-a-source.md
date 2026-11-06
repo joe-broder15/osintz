@@ -1,13 +1,13 @@
 # Adding a source
 
-Do this when a human names the source and the tools. Snusbase is the reference. Do not add a second integration in the same change, and do not invent tools, endpoints, parameters, or fields the human and the source's own docs did not specify. When a doc is ambiguous, record the assumption or ask. Do not paper over it with a new schema.
+Do this when a human names the source and the tools. Snusbase is the reference. DeHashed is the second member (`osint-sources/dehashed/`). Do not add another integration in the same change, and do not invent tools, endpoints, parameters, or fields the human and the source's own docs did not specify. When a doc is ambiguous, record the assumption or ask. Do not paper over it with a new schema.
 
 There is no generator. Copy the shape of `osint-sources/snusbase/`, then delete what that source does not need.
 
 ## Steps
 
 1. Identify the source of truth (official docs, a pinned mirror commit, a local dataset). Write down the version or commit you read.
-2. Record the human-defined tools: name (must include the source name), purpose, inputs, outputs, failures, partial success, cost, and side effects.
+2. Record the human-defined tools. That list is a whitelist: do not register a tool the human did not name. Each tool is read-only or account-mutating. An account-mutating tool changes the remote account and needs explicit human sign-off before implementation. Naming a read-only tool is not sign-off for a write. Record purpose, inputs, outputs, failures, partial success, cost, and side effects. Repo-wide rules are in [mcp-conventions.md](mcp-conventions.md).
 3. Add one workspace member at `osint-sources/<source>/` with its own `pyproject.toml`, `README.md`, `src/`, and `tests/`. The root `[tool.uv.workspace] members` list must include it. The root project stays virtual.
 4. Implement source primitives with no MCP import. Keep them callable without a server.
 5. Implement tool logic and a stdio MCP server. Register only the named tools. Translate primitive failures into MCP errors. Do not take secrets as tool arguments.

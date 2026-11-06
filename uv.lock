@@ -4,6 +4,8 @@ requires-python = "==3.12.*"
 
 [manifest]
 members = [
+    "osintz-common",
+    "osintz-dehashed-mcp",
     "osintz-mcps",
     "osintz-snusbase-mcp",
 ]
@@ -311,17 +313,34 @@ wheels = [
 ]
 
 [[package]]
-name = "osintz-mcps"
-version = "0.0.0"
-source = { virtual = "." }
+name = "osintz-common"
+version = "0.1.0"
+source = { editable = "osint-common" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "ty" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.8" },
+    { name = "ty", specifier = ">=0.0.97" },
+]
 
 [[package]]
-name = "osintz-snusbase-mcp"
+name = "osintz-dehashed-mcp"
 version = "0.1.0"
-source = { editable = "osint-sources/snusbase" }
+source = { editable = "osint-sources/dehashed" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },
+    { name = "osintz-common" },
     { name = "pydantic" },
 ]
 
@@ -337,6 +356,47 @@ dev = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "mcp", specifier = ">=1.2" },
+    { name = "osintz-common", editable = "osint-common" },
+    { name = "pydantic", specifier = ">=2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8" },
+    { name = "respx", specifier = ">=0.21" },
+    { name = "ruff", specifier = ">=0.8" },
+    { name = "ty", specifier = ">=0.0.97" },
+]
+
+[[package]]
+name = "osintz-mcps"
+version = "0.0.0"
+source = { virtual = "." }
+
+[[package]]
+name = "osintz-snusbase-mcp"
+version = "0.1.0"
+source = { editable = "osint-sources/snusbase" }
+dependencies = [
+    { name = "httpx" },
+    { name = "mcp" },
+    { name = "osintz-common" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "respx" },
+    { name = "ruff" },
+    { name = "ty" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mcp", specifier = ">=1.2" },
+    { name = "osintz-common", editable = "osint-common" },
     { name = "pydantic", specifier = ">=2" },
 ]
 

@@ -44,7 +44,8 @@ def test_agents_md_points_at_the_source_docs() -> None:
     for path in (
         "docs/architecture.md",
         "docs/adding-a-source.md",
-        "docs/source-contract.md",
+        "docs/mcp-conventions.md",
+        "docs/snusbase-contract.md",
     ):
         assert path in text
         assert (ROOT / path).is_file()

@@ -5,9 +5,12 @@ Monorepo of independently installable OSINT MCP servers. One uv workspace member
 Read these before changing code:
 
 - [docs/architecture.md](docs/architecture.md)
-- [docs/source-contract.md](docs/source-contract.md)
+- [docs/mcp-conventions.md](docs/mcp-conventions.md)
+- [docs/snusbase-contract.md](docs/snusbase-contract.md)
+- [docs/dehashed-contract.md](docs/dehashed-contract.md)
 - [docs/adding-a-source.md](docs/adding-a-source.md)
 - [osint-sources/snusbase/README.md](osint-sources/snusbase/README.md)
+- [osint-sources/dehashed/README.md](osint-sources/dehashed/README.md)
 
 ## Check
 
@@ -27,6 +30,16 @@ uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ruff che
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ruff format --check
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ty check
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase pytest
+```
+
+DeHashed uses the same lockfile and the same Python range. It is not a second CI command.
+
+```bash
+uv sync --frozen --package osintz-dehashed-mcp --group dev
+uv run --package osintz-dehashed-mcp --directory osint-sources/dehashed ruff check
+uv run --package osintz-dehashed-mcp --directory osint-sources/dehashed ruff format --check
+uv run --package osintz-dehashed-mcp --directory osint-sources/dehashed ty check
+uv run --package osintz-dehashed-mcp --directory osint-sources/dehashed pytest
 ```
 
 Set `UV_PYTHON_DOWNLOADS=never` and point `UV_PYTHON` at Python 3.12. `nix develop` does that.
