@@ -22,7 +22,7 @@ nix flake check -L
 
 `osint-sources/snusbase/tests/test_agent_contract.py` fails if this file drops that command, the `requires-python` value, or the doc links above.
 
-`nix flake check` runs `ruff check`, `ruff format --check`, `ty check`, and pytest from the `uv.lock` environment for `osintz-snusbase-mcp`, on Python 3.12. On a machine without Nix, this stand-in uses the same lockfile. It is not the CI command.
+`nix flake check` runs `ruff check`, `ruff format --check`, `ty check`, and pytest from the `uv.lock` environment for `osintz-snusbase-mcp` and `osintz-dehashed-mcp`, on Python 3.12. On a machine without Nix, the stand-ins below use the same lockfile. They are not the CI command.
 
 ```bash
 uv sync --frozen --package osintz-snusbase-mcp --group dev
@@ -32,7 +32,7 @@ uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase ty check
 uv run --package osintz-snusbase-mcp --directory osint-sources/snusbase pytest
 ```
 
-DeHashed uses the same lockfile and the same Python range. It is not a second CI command.
+DeHashed is part of that same `nix flake check`. It is not a second CI command. Its stand-in:
 
 ```bash
 uv sync --frozen --package osintz-dehashed-mcp --group dev

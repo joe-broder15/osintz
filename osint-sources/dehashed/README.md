@@ -97,8 +97,17 @@ async def main() -> None:
         print(sorted(tool.name for tool in listed.tools))
         wells = await client.call_tool("dehashed-data-wells", {"count": 20, "page": 1})
         print(wells)
+        search = await client.call_tool("dehashed-search", {"query": "example@example.com"})
+        print(search)
         whois = await client.call_tool("dehashed-whois", {"domain": "example.com"})
         print(whois)
+        reverse = await client.call_tool(
+            "dehashed-reverse-whois",
+            {"include": ["example.com"]},
+        )
+        print(reverse)
+        scan = await client.call_tool("dehashed-subdomain-scan", {"domain": "example.com"})
+        print(scan)
 
 asyncio.run(main())
 PY
@@ -112,7 +121,7 @@ curl -sS 'https://api.dehashed.com/data-wells?count=20&page=1'
 
 What this repository has not verified against `https://api.dehashed.com`:
 
-- Live status codes for the six tools.
+- Live status codes for the five tools.
 - Whether each search page costs a credit.
 - The WHOIS search JSON.
 - The unit string on `took` beyond the one example.
