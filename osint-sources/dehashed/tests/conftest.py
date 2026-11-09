@@ -11,7 +11,7 @@ def _no_ambient_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(ENV_API_KEY, raising=False)
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def router():
     """Block every httpx call unless a test adds a route."""
     with respx.mock(assert_all_called=False) as mock:

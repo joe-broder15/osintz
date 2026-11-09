@@ -19,7 +19,7 @@ There is no generator. Copy the shape of `osint-sources/snusbase/`, then delete 
 
 - Distribution `osintz-snusbase-mcp`, script `snusbase-mcp`, tools `snusbase-search`, `snusbase-whois`, `snusbase-hash`, and `snusbase-combo`.
 - Client code lives under `src/snusbase_client/` and is imported by `src/snusbase_mcp/`. The client package never imports `mcp` or `snusbase_mcp`.
-- Tool logic is `lookup.py`. `server.py` only registers tools and maps `SnusbaseError` to `ToolError`.
+- Tool logic is `lookup.py`. `server.py` registers the tools, owns the process lifespan, maps `SnusbaseError` to `ToolError`, and is the stdio entry point.
 - `tests/conftest.py` deletes `SNUSBASE_API_KEY` and blocks every httpx call unless the test adds a route.
 - The source README has the live-call instructions. Automated checks do not perform those calls.
 

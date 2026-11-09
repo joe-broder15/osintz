@@ -7,6 +7,7 @@ AGENTS_PATH = ROOT / "AGENTS.md"
 PYPROJECTS = [
     ROOT / "pyproject.toml",
     ROOT / "osint-sources" / "snusbase" / "pyproject.toml",
+    ROOT / "osint-sources" / "dehashed" / "pyproject.toml",
 ]
 
 _REQUIRES_PYTHON = re.compile(r'(?m)^requires-python\s*=\s*"([^"]+)"')
@@ -43,9 +44,12 @@ def test_agents_md_points_at_the_source_docs() -> None:
     text = _agents_text()
     for path in (
         "docs/architecture.md",
-        "docs/adding-a-source.md",
         "docs/mcp-conventions.md",
         "docs/snusbase-contract.md",
+        "docs/dehashed-contract.md",
+        "docs/adding-a-source.md",
+        "osint-sources/snusbase/README.md",
+        "osint-sources/dehashed/README.md",
     ):
         assert path in text
         assert (ROOT / path).is_file()
