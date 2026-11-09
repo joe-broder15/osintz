@@ -22,7 +22,6 @@ from os import environ
 from typing import Any
 
 import httpx
-from osintz_common import Secret, check_base_url, client_repr, redirect_not_followed
 from pydantic import BaseModel, ValidationError
 
 from dehashed_client.exceptions import (
@@ -63,6 +62,27 @@ OPERATIONS: dict[str, tuple[str, str, bool]] = {
     "reverse_whois": ("POST", PATH_WHOIS_SEARCH, True),
     "subdomain_scan": ("POST", PATH_WHOIS_SEARCH, True),
 }
+
+
+class _Secret:
+    """Holds the API key. ``str`` and ``repr`` never reveal it."""
+
+    __slots__ = ("_value",)
+
+    def __init__(self, value: str) -> None:
+        self._value = value
+
+    def __repr__(self) -> str:
+        return "_Secret(<redacted>)"
+
+    def __str__(self) -> str:
+        return "<redacted>"
+
+    def __format__(self, format_spec: str) -> str:
+        return "<redacted>"
+
+    def reveal(self) -> str:
+        return self._value
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,7 +209,7 @@ def _parse_response[T: BaseModel](response: httpx.Response, model: type[T]) -> D
     if not response.is_success:
         if 300 <= response.status_code < 400:
             raise DehashedAPIError(
-                redirect_not_followed(response.status_code),
+                f"Unexpected redirect (HTTP {response.status_code}). Redirects are not followed.",
                 status_code=response.status_code,
             )
         raise _error_from_response(response)
@@ -217,6 +237,12 @@ def _parse_response[T: BaseModel](response: httpx.Response, model: type[T]) -> D
     return DehashedResponse(data=data, status_code=response.status_code)
 
 
+def _check_base_url(base_url: str) -> str:
+    if not isinstance(base_url, str) or not base_url.strip():
+        raise ValueError("base_url must be a non-empty string")
+    return base_url.rstrip("/")
+
+
 def _redact(message: str, secret: str) -> str:
     if len(secret) < 4 or secret not in message:
         return message
@@ -241,10 +267,10 @@ class DehashedClient:
         clock: Callable[[], float] | None = None,
         sleep: Callable[[float], Awaitable[None]] | None = None,
     ) -> None:
-        self.base_url = check_base_url(base_url)
+        self.base_url = _check_base_url(base_url)
         self.timeout = timeout
         resolved = _resolve_api_key(api_key)
-        self._api_key = Secret(resolved) if resolved is not None else None
+        self._api_key = _Secret(resolved) if resolved is not None else None
         self._limiter = _SlidingWindow(limit=rate_per_second, clock=clock, sleep=sleep)
         self._http = httpx.AsyncClient(
             base_url=self.base_url,
@@ -253,11 +279,10 @@ class DehashedClient:
         )
 
     def __repr__(self) -> str:
-        return client_repr(
-            type(self).__name__,
-            self.base_url,
-            self.timeout,
-            api_key_set=self._api_key is not None,
+        key_set = self._api_key is not None
+        return (
+            f"{type(self).__name__}(base_url={self.base_url!r}, "
+            f"timeout={self.timeout!r}, api_key_set={key_set})"
         )
 
     def __str__(self) -> str:

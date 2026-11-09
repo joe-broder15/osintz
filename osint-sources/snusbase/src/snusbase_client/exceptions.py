@@ -8,17 +8,11 @@ maps to :class:`SnusbaseAPIError`. A missing or blank API key is
 
 from collections.abc import Sequence
 
-from osintz_common import ClientError
-
 from snusbase_client.models import RateLimit
 
 
-class SnusbaseError(ClientError):
-    """Base class for errors from this client.
-
-    ``message`` and ``status_code`` come from :class:`osintz_common.ClientError`.
-    ``errors`` and ``rate_limit`` are Snusbase response fields.
-    """
+class SnusbaseError(Exception):
+    """Base class for errors from this client."""
 
     def __init__(
         self,
@@ -28,7 +22,9 @@ class SnusbaseError(ClientError):
         errors: Sequence[str] = (),
         rate_limit: RateLimit | None = None,
     ) -> None:
-        super().__init__(message, status_code=status_code)
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
         self.errors = list(errors)
         self.rate_limit = rate_limit if rate_limit is not None else RateLimit()
 

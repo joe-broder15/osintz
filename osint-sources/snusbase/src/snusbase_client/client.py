@@ -15,7 +15,6 @@ from os import environ
 from typing import Any
 
 import httpx
-from osintz_common import Secret, check_base_url, client_repr, redirect_not_followed
 from pydantic import BaseModel, ValidationError
 
 from snusbase_client.exceptions import (
@@ -64,6 +63,27 @@ OPERATIONS: dict[str, tuple[str, str]] = {
     "ip_whois": ("POST", PATH_IP_WHOIS),
     "domain_whois": ("POST", PATH_DOMAIN_WHOIS),
 }
+
+
+class _Secret:
+    """Holds the activation code. ``str`` and ``repr`` never reveal it."""
+
+    __slots__ = ("_value",)
+
+    def __init__(self, value: str) -> None:
+        self._value = value
+
+    def __repr__(self) -> str:
+        return "_Secret(<redacted>)"
+
+    def __str__(self) -> str:
+        return "<redacted>"
+
+    def __format__(self, format_spec: str) -> str:
+        return "<redacted>"
+
+    def reveal(self) -> str:
+        return self._value
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,7 +187,7 @@ def _parse_response[T: BaseModel](response: httpx.Response, model: type[T]) -> S
     if not response.is_success:
         if 300 <= response.status_code < 400:
             raise SnusbaseAPIError(
-                redirect_not_followed(response.status_code),
+                f"Unexpected redirect (HTTP {response.status_code}). Redirects are not followed.",
                 status_code=response.status_code,
                 rate_limit=rate_limit,
             )
@@ -193,7 +213,7 @@ def _parse_response[T: BaseModel](response: httpx.Response, model: type[T]) -> S
 
 
 def _request_kwargs(
-    api_key: Secret | None,
+    api_key: _Secret | None,
     *,
     json_body: dict[str, Any] | None,
     authenticated: bool,
@@ -214,6 +234,18 @@ def _request_kwargs(
     }
     kwargs["headers"] = headers
     return kwargs
+
+
+def _check_base_url(base_url: str) -> str:
+    if not isinstance(base_url, str) or not base_url.strip():
+        raise ValueError("base_url must be a non-empty string")
+    return base_url.rstrip("/")
+
+
+def _client_repr(
+    kind: str, base_url: str, timeout: float | httpx.Timeout, api_key: _Secret | None
+) -> str:
+    return f"{kind}(base_url={base_url!r}, timeout={timeout!r}, api_key_set={api_key is not None})"
 
 
 def parse_rate_limit(headers: Mapping[str, str]) -> RateLimit:
@@ -255,10 +287,10 @@ class SnusbaseClient:
         base_url: str = DEFAULT_BASE_URL,
         timeout: float | httpx.Timeout = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
-        self.base_url = check_base_url(base_url)
+        self.base_url = _check_base_url(base_url)
         self.timeout = timeout
         resolved = _resolve_api_key(api_key)
-        self._api_key = Secret(resolved) if resolved is not None else None
+        self._api_key = _Secret(resolved) if resolved is not None else None
         self._http = httpx.AsyncClient(
             base_url=self.base_url,
             timeout=timeout,
@@ -266,12 +298,7 @@ class SnusbaseClient:
         )
 
     def __repr__(self) -> str:
-        return client_repr(
-            type(self).__name__,
-            self.base_url,
-            self.timeout,
-            api_key_set=self._api_key is not None,
-        )
+        return _client_repr(type(self).__name__, self.base_url, self.timeout, self._api_key)
 
     def __str__(self) -> str:
         return repr(self)

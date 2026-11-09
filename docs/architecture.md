@@ -1,6 +1,6 @@
 # Architecture
 
-osintz-mcps is a uv workspace of OSINT MCP servers. Each source is one workspace member and one installable distribution. Source packages do not depend on each other. Both depend on `osintz-common` for the helpers they actually share. Snusbase and DeHashed are the sources. Both are stdio only.
+osintz-mcps is a uv workspace of OSINT MCP servers. Each source is one workspace member and one installable distribution. Members do not depend on each other. Snusbase and DeHashed are the members. Both are stdio only.
 
 ```text
 MCP interface → tool logic → source primitives
@@ -24,7 +24,6 @@ Shared rules are in [mcp-conventions.md](mcp-conventions.md). Snusbase specifics
 ├── uv.lock                 one lockfile for the workspace
 ├── flake.nix               uv2nix packages and checks
 ├── docs/                   mcp-conventions.md, plus one contract per source
-├── osint-common/           osintz-common: Secret, ClientError, and the shared sentences
 └── osint-sources/
     ├── snusbase/
     │   ├── pyproject.toml      distribution osintz-snusbase-mcp

@@ -115,4 +115,4 @@ Public docs as of the mirror README blob `535876c681d42db603e3f2fe72e6f13cb4e945
 
 ## Not in this contract
 
-DeHashed is the second member. Its contract is [dehashed-contract.md](dehashed-contract.md). Shared rules are in [mcp-conventions.md](mcp-conventions.md). Shodan, other WHOIS providers, and certificate transparency are examples in the vision, not members of this repo. `osintz-common` holds only the helpers both clients already repeated. Snusbase still owns its `errors` list, rate-limit headers, and `reset_seconds`. Source packages do not depend on each other.
+DeHashed is the second member. Its contract is [dehashed-contract.md](dehashed-contract.md). Shared rules are in [mcp-conventions.md](mcp-conventions.md). Shodan, other WHOIS providers, and certificate transparency are examples in the vision, not members of this repo. Shared runtime stays unextracted. The two clients both redact a secret and refuse redirects. Auth, errors, pacing, and pagination are different, so those pieces stay in each source. Source packages do not depend on each other.

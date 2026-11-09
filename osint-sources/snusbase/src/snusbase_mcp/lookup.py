@@ -3,8 +3,6 @@
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
-from osintz_common import name_env
-
 from snusbase_client import (
     ComboLookupTypeName,
     HashLookupTypeName,
@@ -33,7 +31,9 @@ def tool_error_text(exc: SnusbaseError) -> str:
     A rate-limit error includes ``reset_seconds`` when the header was an integer.
     """
     if isinstance(exc, SnusbaseAuthError):
-        return name_env(exc.message, ENV_API_KEY)
+        if ENV_API_KEY not in exc.message:
+            return f"{exc.message} Set {ENV_API_KEY}."
+        return exc.message
     if isinstance(exc, SnusbaseRateLimitError) and exc.reset_seconds is not None:
         return f"{exc.message} reset_seconds={exc.reset_seconds}"
     return exc.message

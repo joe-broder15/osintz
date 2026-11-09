@@ -85,9 +85,6 @@
       dehashedCheck = {
         osintz-dehashed-mcp = [ "dev" ];
       };
-      commonCheck = {
-        osintz-common = [ "dev" ];
-      };
 
       mkChecks =
         system: name: source: relative: groups: copyRepo:
@@ -198,7 +195,6 @@
         system:
         mkChecks system "osintz-snusbase-mcp" ./osint-sources/snusbase "osint-sources/snusbase" snusbaseCheck true
         // mkChecks system "osintz-dehashed-mcp" ./osint-sources/dehashed "osint-sources/dehashed" dehashedCheck false
-        // mkChecks system "osintz-common" ./osint-common "osint-common" commonCheck false
       );
     };
 }

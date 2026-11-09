@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from osintz_common import name_env
 from pydantic import BaseModel
 
 from dehashed_client import (
@@ -23,9 +22,12 @@ def tool_error_text(exc: DehashedError) -> str:
     authentication names ``DEHASHED_API_KEY`` without appending the key.
     """
     if isinstance(exc, DehashedAuthError):
-        return name_env(exc.message, ENV_API_KEY)
+        if ENV_API_KEY not in exc.message:
+            return f"{exc.message} Set {ENV_API_KEY}."
+        return exc.message
     if isinstance(exc, DehashedBadRequestError) and "authentication" in exc.message.lower():
-        return name_env(exc.message, ENV_API_KEY, verb="Check")
+        if ENV_API_KEY not in exc.message:
+            return f"{exc.message} Check {ENV_API_KEY}."
     if isinstance(exc, DehashedSubscriptionError):
         return exc.message
     return exc.message

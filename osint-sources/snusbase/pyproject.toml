@@ -19,12 +19,8 @@ classifiers = [
 dependencies = [
     "httpx>=0.27",
     "mcp>=1.2",
-    "osintz-common",
     "pydantic>=2",
 ]
-
-[tool.uv.sources]
-osintz-common = { workspace = true }
 
 [project.scripts]
 snusbase-mcp = "snusbase_mcp.server:main"

@@ -5,16 +5,19 @@ body is a missing search subscription, not a missing key. A missing or blank
 key is :class:`DehashedAuthError` and is raised before a request is sent.
 Any other HTTP failure, transport failure, or successful body that does not
 match the documented shape is :class:`DehashedAPIError`.
-
-:class:`DehashedError` is :class:`osintz_common.ClientError`. The subclasses
-are DeHashed's status mapping, not a second copy of the base.
 """
 
-from osintz_common import ClientError
 
-
-class DehashedError(ClientError):
+class DehashedError(Exception):
     """Base class for errors from this client."""
+
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(status_code={self.status_code!r})"
 
 
 class DehashedBadRequestError(DehashedError):
