@@ -6,7 +6,7 @@ The server exposes `snusbase-search`, `snusbase-whois`, `snusbase-hash`, and `sn
 
 The client follows the public docs and the [source mirror](https://github.com/snusbase/docs.snusbase.com). It does not add endpoints, parameters, or fields those docs do not describe. This is not an official Snusbase library. No API key is stored in this repository.
 
-The contract, including doc ambiguities, is [docs/source-contract.md](../../docs/source-contract.md).
+Repo-wide rules are in [docs/mcp-conventions.md](../../docs/mcp-conventions.md). The Snusbase contract, including doc ambiguities, is [docs/snusbase-contract.md](../../docs/snusbase-contract.md).
 
 ## Safety
 
@@ -209,7 +209,7 @@ The workspace lockfile and the flake live at the repo root.
 
 ## Notes on the upstream docs
 
-Same list as [docs/source-contract.md](../../docs/source-contract.md#doc-ambiguities). Kept here so this source can be read on its own.
+Same list as [docs/snusbase-contract.md](../../docs/snusbase-contract.md#doc-ambiguities). Kept here so this source can be read on its own.
 
 These are ambiguities in the public docs as of the mirror README blob `535876c681d42db603e3f2fe72e6f13cb4e94542`. The client models follow the choices below.
 
